@@ -32,6 +32,6 @@ calibration loop. **Read it and follow it.** This command only wires up the inpu
    ```
    Feed the snapshot to the Quant worker verbatim; do not recompute indicators.
 
-4. **Run the workflow from the README** for the triaged tier, save the report to
+4. **Run the workflow from the README** for the triaged tier, validate the finished report (`python prediction_record.py <report.md>` from engine/, must print OK), save it to
    `data/Reports/{Crypto|Equities}/{TICKER}/`, then summarize to the owner and ask whether to update
    `data/Research/{TICKER}.md` — never auto-edit his thesis.

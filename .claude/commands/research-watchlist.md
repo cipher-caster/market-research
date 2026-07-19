@@ -77,7 +77,8 @@ high-med-low confidence scale. Use that; do not invent a numeric floor.
 >    Targets table, Entries & risk table with mandatory Stop, Confidence, Review date,
 >    Kill criteria) and a short `## Self-Critique Pass` at the end. Keep the body compact
 >    — this is a sweep, not a Tier 2 deep dive.
-> 5. **Return to the orchestrator** (do not print the whole report): one line each for —
+> 5. **Validate:** `python prediction_record.py <your report.md>` (from engine/, venv active) — must print OK before you finish.
+> 6. **Return to the orchestrator** (do not print the whole report): one line each for —
 >    ticker, Verdict, Direction, Confidence, swing target + %, stop, and a one-phrase
 >    "what changed since last report / since the owner's thesis."
 

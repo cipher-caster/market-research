@@ -86,7 +86,11 @@ command only wires up the inputs — it does not change the rules.
    - Keep it compact. Separate **stopped-out** (trade discipline) from **thesis-dead**
      (fundamentals) when they point opposite ways — honor the stop without auto-killing the thesis.
 
-6. **Summarize to the owner, then stop.** Give the verdict and the one decision he owns. Make
+6. **Validate the report** — from `engine/` (venv active):
+   `python prediction_record.py <the new report.md>` — must print OK. On FAIL,
+   fix the named field and re-validate before summarizing.
+
+7. **Summarize to the owner, then stop.** Give the verdict and the one decision he owns. Make
    **no** edits to `data/Research/{TICKER}.md` or the Watchlist row on your own — a stop/kill
    event is the most tempting moment to rewrite the thesis; don't. Ask whether to:
    - append a dated entry to `data/Research/{TICKER}.md` Updates Log, and/or

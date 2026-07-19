@@ -134,7 +134,7 @@ This is what makes the system score-able later, so the fields below are required
 
 **Kill criteria:** one line — what invalidates the thesis.
 
-The calibration loop parses these fields wherever they sit — tables are fine as long as the field names and values are present and unambiguous.
+The Prediction Record is machine-validated: `engine/prediction_record.py` (pydantic schema) parses these exact fields, and a report that fails validation violates this contract. After writing any report, run `python prediction_record.py <report.md>` — fix and re-validate on failure. The calibration loop scores the parsed, typed fields.
 
 ### `## Self-Critique Pass`
 

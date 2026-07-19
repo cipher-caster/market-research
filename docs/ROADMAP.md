@@ -16,12 +16,10 @@ only when the repo earns it. Real data never enters git history.
 
 ## Phase 1 — Engineering hygiene
 
-- [ ] `pyproject.toml` packaging, pinned deps
-- [ ] Unit tests on indicator math against recorded OHLCV fixtures (no network);
-      keep `test_smoke.py` as the separate live check
-- [ ] CI: lint (ruff) + typecheck + fixture tests on every push
-- [ ] Prediction Record as a validated schema (pydantic) — calibration scores
-      parsed fields, not regex-over-markdown
+- [x] `pyproject.toml` packaging, pinned deps; ruff + mypy clean — 2026-07-19
+- [x] Fixture unit tests (goldens + invariants + parsing, 18 tests, no network) — 2026-07-19
+- [x] CI workflow: ruff + mypy + pytest (runs when the repo gets a remote) — 2026-07-19
+- [x] Prediction Record pydantic schema + validator CLI, wired into the skills — 2026-07-19
 
 ## Phase 2 — System improvements (from the 2026-07-19 opus review)
 
