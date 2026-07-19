@@ -82,7 +82,7 @@ The depth of agent research is determined by the decision being made. Don't over
 
 **When:** the owner flags a call as high-stakes (unusual conviction, IPO coverage, a major at an inflection point).
 
-**Architecture:** identical to Tier 2 but the three parallel workers run on **opus** instead of sonnet. Synthesizer stays sonnet. The owner must explicitly request Tier 3 OR the trigger conditions above must be met.
+**Architecture:** identical to Tier 2 but the **synthesizer runs on opus** — Tier 3 spends the larger model on the judgment step (resolving bull/bear, setting the levels), not on gathering. Workers stay sonnet; upgrade a worker to opus only if its subproblem is itself open-ended. The owner must explicitly request Tier 3 OR the trigger conditions above must be met.
 
 ### Triage rule
 
@@ -129,6 +129,7 @@ This is what makes the system score-able later, so the fields below are required
 | Regime | risk_on / neutral / risk_off (from `regime.py` on the class benchmark) — risk_off suspends the add levels below |
 | Add levels | breakout trigger + add-ladder rungs (from technicals; never cost-anchored). Rungs fire on reclaim confirmation, not touch |
 | Stop | `<price>` — MANDATORY; the invalidation level where the call is wrong, defined when the call is issued |
+| Event window | nearest market-wide event inside the swing horizon (FOMC, CPI, major options expiry, large unlock cluster) with its date — or `none`. Same failure family as the regime gate: per-asset reasoning blindsided by a market-wide driver |
 | Confidence | high / medium / low |
 | Review date | `YYYY-MM-DD` — when to score this |
 
@@ -138,9 +139,10 @@ The Prediction Record is machine-validated: `engine/prediction_record.py` (pydan
 
 ### `## Self-Critique Pass`
 
-A short check appended by the synthesizer. Two questions only:
+A short check appended by the synthesizer. Three questions only:
 - **Citation coverage:** what % of numeric claims have a source URL? Any `[UNVERIFIED]` items?
 - **Internal consistency:** does the Bear case actually contradict the bull, or are they talking past each other?
+- **Premortem (on the CALL, not the thesis):** assume the primary call is wrong at review_date — state the single most likely reason in one line, and say whether that reason is regime / correlation / timing rather than thesis. The bear worker attacks the thesis before synthesis; this line red-teams the committed decision after it (the ZEC class of miss — long beta into risk_off — is exactly what it exists to catch).
 
 Don't expand this into a full critic agent. The point is forcing the synthesizer to look back, not generating more output.
 
@@ -188,7 +190,7 @@ This is the auto-improvement. Past misses get cited in future research.
 
 For any crypto Tier 2/3 report, the Quant worker MUST include:
 
-- **Token unlock table** — upcoming unlocks by date and % of supply, as a literal table not prose. This is the single biggest catalyst class for crypto and gets buried in narrative every time.
+- **Token unlock table** — upcoming unlocks by date and % of supply, as a **literal markdown table under a `## Token Unlocks` heading** — never prose. This is a hard gate: `prediction_record.py` fails any `Reports/Crypto/` report without it (a fair-launch asset with no unlocks states that in one row). The single biggest crypto catalyst class must be impossible to bury in narrative.
 - **Sentiment source:** Kaito (higher-signal than generic CT scraping)
 - **On-chain sources:** Glassnode and/or Token Terminal — these are the citable primary sources
 

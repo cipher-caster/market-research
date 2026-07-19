@@ -23,15 +23,12 @@ only when the repo earns it. Real data never enters git history.
 
 ## Phase 2 — System improvements (from the 2026-07-19 opus review)
 
-- [ ] Calibration scoreboard: append-only results table; confidence→probability
-      mapping (high=0.7 / med=0.55 / low=0.4); bias lifecycle (added/evidence/retired)
-- [ ] Correlation flag: sweep digest notes when multiple active calls share one
-      beta cluster (e.g. all crypto = BTC beta) — a per-asset call is weaker inside a cluster
-- [ ] Premortem line in Self-Critique Pass — red-team the synthesized call
-      (regime/correlation/size), not just the thesis
-- [ ] Tier 3 model flip: opus on the synthesizer (judgment), not only workers
-- [ ] Hard gate: crypto reports fail review without a literal unlock table
-- [ ] Macro event-window line in Prediction Record (FOMC/CPI/expiry inside horizon)
+- [x] Calibration scoreboard + confidence probabilities + bias lifecycle — 2026-07-19
+- [x] Correlation flag in the sweep digest (beta clusters) — 2026-07-19
+- [x] Premortem line in Self-Critique Pass (red-team the call) — 2026-07-19
+- [x] Tier 3 model flip: opus synthesizer, sonnet workers — 2026-07-19
+- [x] Hard gate: crypto unlock table enforced by prediction_record.py — 2026-07-19
+- [x] Event-window row in the Prediction Record — 2026-07-19
 - [x] Delete the dead trade-log schema; reframe to pure research calls (no positions) — 2026-07-19
 
 ## Phase 3 — Turn it back on

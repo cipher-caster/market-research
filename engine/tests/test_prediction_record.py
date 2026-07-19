@@ -76,3 +76,26 @@ def test_bad_direction_fails():
                        "| Direction | maybe long? |")
     with pytest.raises(ValueError, match="direction"):
         parse_report(bad, "BTC")
+
+
+UNLOCKS = """
+
+## Token Unlocks
+
+| Date | Amount | % of circulating |
+|---|---|---|
+| 2026-07-28 | 88.9M | +138% |
+"""
+
+
+def test_crypto_gate_requires_unlock_table():
+    with pytest.raises(ValueError, match="[Uu]nlock"):
+        parse_report(GOOD, "XPL", crypto=True)
+    rec = parse_report(GOOD + UNLOCKS, "XPL", crypto=True)
+    assert rec.direction == "buy"
+
+
+def test_unlock_prose_does_not_satisfy_gate():
+    prose = GOOD + "\n## Token Unlocks\n\nA big unlock happens July 28, about 138%.\n"
+    with pytest.raises(ValueError, match="[Uu]nlock"):
+        parse_report(prose, "XPL", crypto=True)

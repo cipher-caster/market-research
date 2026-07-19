@@ -72,12 +72,25 @@ def _table_rows(section: str) -> list[list[str]]:
     return rows
 
 
-def parse_report(text: str, ticker: str) -> PredictionRecord:
+def has_unlock_table(text: str) -> bool:
+    """A literal markdown table under a heading containing 'unlock' (crypto hard gate)."""
+    m = re.search(r"^#{2,4}[^\n]*unlock[^\n]*$", text, re.M | re.I)
+    if not m:
+        return False
+    following = text[m.end():].split("\n#", 1)[0]
+    return bool(re.search(r"^\s*\|.+\|\s*$", following, re.M))
+
+
+def parse_report(text: str, ticker: str, crypto: bool = False) -> PredictionRecord:
     """Extract the Prediction Record fields from a report's markdown.
 
     Raises ValueError (parse) or pydantic.ValidationError (content) on failure —
-    both mean the report violates the contract in README.md.
+    both mean the report violates the contract in README.md. With crypto=True,
+    a missing Token Unlocks table is a failure (the README's hard gate).
     """
+    if crypto and not has_unlock_table(text):
+        raise ValueError("crypto report missing the Token Unlocks table "
+                         "(literal table under a '## Token Unlocks' heading — hard gate)")
     # Provenance header: v{N} | Supersedes: ... | Trigger: ...
     prov = re.search(r"^v(\d+)\s*\|\s*Supersedes:\s*(.+?)\s*\|\s*Trigger:\s*(.+)$",
                      text, re.M)
@@ -143,8 +156,9 @@ def validate_file(path) -> tuple[bool, str]:
     from pathlib import Path
     p = Path(path)
     ticker = p.parent.name if p.parent.name not in ("Reports", "_meta") else p.stem
+    crypto = "Crypto" in p.parts
     try:
-        rec = parse_report(p.read_text(), ticker)
+        rec = parse_report(p.read_text(), ticker, crypto=crypto)
         return True, f"OK    {p.name}  v{rec.version} {rec.direction} " \
                      f"stop={rec.stop:g} review={rec.review_date}"
     except (ValueError, ValidationError) as e:

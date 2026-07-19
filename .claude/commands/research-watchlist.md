@@ -92,6 +92,9 @@ Write `data/Reports/_meta/Watchlist-Scan/{YYYY-MM-DD}.md`:
 - **One-line header:** date, scope (active/all), tickers covered.
 - **Ranked table** — sort best opportunity → worst. Columns: Rank | Ticker | Direction |
   Confidence | Verdict (one line) | Swing target (+%) | Stop | What changed.
+- **Correlation flag** — when 3+ Active calls share one beta cluster (all crypto =
+  BTC beta; multiple AI-infra equities), say so in one line: each call in a cluster
+  is weaker than it looks alone, and a risk_off regime hits the whole cluster at once.
 - **Flags** — any ticker where the technicals layer errored/fell back, any
   `[UNVERIFIED]` numbers, any thesis that may be invalidated (kill criteria near).
 - Ranking logic: Active calls with a triggered/near kill-criterion rank first (action
