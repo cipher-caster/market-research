@@ -122,11 +122,13 @@ def parse_report(text: str, ticker: str, crypto: bool = False) -> PredictionReco
                                          basis=cols[3]))
 
     def keyword(name: str, options: list[str]) -> str:
+        # Earliest occurrence wins, not list order: "hold — no buy yet" must
+        # parse as hold, not buy. The primary call leads the cell by contract.
         raw = fields.get(name, "").lower().replace("-", "_")
-        for opt in options:
-            if opt in raw:
-                return opt
-        raise ValueError(f"field '{name}' missing or not one of {options}: {raw!r}")
+        hits = [(raw.find(opt), opt) for opt in options if opt in raw]
+        if not hits:
+            raise ValueError(f"field '{name}' missing or not one of {options}: {raw!r}")
+        return min(hits)[1]
 
     review = re.search(r"\d{4}-\d{2}-\d{2}", fields.get("review date", ""))
     if not review:

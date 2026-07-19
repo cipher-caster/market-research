@@ -99,3 +99,10 @@ def test_unlock_prose_does_not_satisfy_gate():
     prose = GOOD + "\n## Token Unlocks\n\nA big unlock happens July 28, about 138%.\n"
     with pytest.raises(ValueError, match="[Uu]nlock"):
         parse_report(prose, "XPL", crypto=True)
+
+
+def test_direction_earliest_keyword_wins():
+    """'hold ... no buy yet' must parse as hold — position beats option order."""
+    r = GOOD.replace("| Direction | buy (primary). Downside flag: none |",
+                     "| Direction | hold (primary) — no buy call until the reclaim confirms |")
+    assert parse_report(r, "BTC").direction == "hold"
