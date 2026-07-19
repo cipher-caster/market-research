@@ -1,0 +1,16 @@
+# Python env — never commit
+.venv/
+venv/
+__pycache__/
+*.pyc
+logs/
+
+# Local machine config — copy engine/.env.example to engine/.env
+.env
+
+# Real trading data — machine-local, NEVER committed (portfolio repo stays
+# publishable). The engine creates/reads data/ locally; see README Folder Layout.
+data/
+
+# Rendered report views (artifacts/PDF intermediates) — disposable
+*.pdf
