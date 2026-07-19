@@ -26,7 +26,7 @@ from fetch_ohlcv import fetch
 # (without --crypto), Yahoo returns the *stock* and you get silently wrong data
 # (e.g. "BTC" the equity at ~$32, not Bitcoin at ~$73k). Refuse these unless the
 # caller is explicit. Not exhaustive -- the /research command passes --crypto for
-# anything tagged Type=Crypto in Trade-Log, so this only guards manual CLI use.
+# anything tagged Type=Crypto in Watchlist, so this only guards manual CLI use.
 AMBIGUOUS_CRYPTO = {
     "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "LINK",
     "DOT", "ATOM", "NEAR", "ARB", "ZEC", "ONDO", "HYPE",

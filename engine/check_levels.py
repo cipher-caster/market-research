@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Watchlist level-watch sweep -- alert-driven monitoring, not calendar-driven.
 
-Reads the Watchlist table in Trade-Log.md, pulls live prices, and reports ONLY
+Reads the calls table in Watchlist.md, pulls live prices, and reports ONLY
 the rows where a defined level has triggered (or is within 3%):
 
-  STOP BREACHED / STOP NEAR     price at/under the stop (Holding rows)
+  STOP BREACHED / STOP NEAR     price at/under the invalidation level (Active rows)
   IN ENTRY ZONE                 price inside/below the entry range
   TARGET HIT / TARGET NEAR      price at/over the target
 
@@ -13,7 +13,7 @@ during a market-wide crash is not the same signal as one touched in a calm
 uptrend (see ZEC, June 2026).
 
 Rows with TBD levels are listed once at the end as "no levels". Archive rows
-are ignored. Exited rows are checked for entry-zone (re-entry) only.
+are ignored. Resolved/Invalidated rows are checked for entry-zone (re-entry) only.
 
 Usage:
     python check_levels.py            # human output
@@ -26,7 +26,7 @@ import argparse
 import re
 import sys
 
-from config import TRADE_LOG
+from config import WATCHLIST
 from fetch_ohlcv import fetch
 from regime import compute_regime, GATE
 from technicals import resolve
@@ -46,9 +46,10 @@ def parse_number(cell: str):
 
 
 def parse_watchlist(text: str) -> list[dict]:
-    """Rows of the active Watchlist table (stops at the next ## section)."""
-    section = re.split(r"^## ", text.split("## Watchlist / Thesis", 1)[1],
-                       flags=re.M)[0]
+    """Rows of the calls table (stops at the next ## section)."""
+    if "## Calls" not in text:
+        return []
+    section = re.split(r"^## ", text.split("## Calls", 1)[1], flags=re.M)[0]
     rows = []
     for line in section.splitlines():
         if not line.strip().startswith("|"):
@@ -84,26 +85,25 @@ def check_row(row: dict) -> list[str] | None:
     px = float(df["Close"].iloc[-1])
     lo = float(df["Low"].iloc[-1])
 
-    holding = row["status"].lower() == "holding"
-    exited = row["status"].lower() == "exited"
+    active = row["status"].lower() == "active"
     fired = []
 
-    if stop is not None and holding:
+    if stop is not None and active:
         s = stop if isinstance(stop, float) else stop[0]
         if px <= s or lo <= s:
             fired.append(f"STOP BREACHED — price {px:.2f} (low {lo:.2f}) vs stop {s}")
         elif px <= s * (1 + NEAR_PCT / 100):
             fired.append(f"STOP NEAR — price {px:.2f} within {NEAR_PCT}% of stop {s}")
 
-    if entry is not None and not holding:
+    if entry is not None:
         e_lo, e_hi = entry if isinstance(entry, tuple) else (entry, entry)
         if px <= e_hi:
-            tag = "re-entry" if exited else "entry"
+            tag = "entry" if active else "re-entry"
             where = "inside" if px >= e_lo else "BELOW"
             fired.append(f"IN {tag.upper()} ZONE — price {px:.2f} {where} {e_lo}-{e_hi}"
                          + (" (check why it overshot)" if px < e_lo else ""))
 
-    if target is not None and holding:
+    if target is not None and active:
         t = target if isinstance(target, float) else target[1]
         if px >= t:
             fired.append(f"TARGET HIT — price {px:.2f} vs target {t}")
@@ -119,9 +119,9 @@ def main() -> None:
                    help="print nothing unless a level triggered (cron mode)")
     args = p.parse_args()
 
-    rows = parse_watchlist(TRADE_LOG.read_text())
+    rows = parse_watchlist(WATCHLIST.read_text())
     if not rows:
-        # An empty watchlist is a valid state (fresh Trade-Log) — nothing to watch.
+        # An empty watchlist is a valid state (fresh Watchlist) — nothing to watch.
         if not args.quiet:
             print("Watchlist is empty — nothing to watch.")
         return

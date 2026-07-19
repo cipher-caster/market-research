@@ -1,6 +1,6 @@
 # Roadmap
 
-Goal: a portfolio-grade AI-agentic trading research system — professional,
+Goal: a portfolio-grade AI-agentic market-research system (scoreable calls, no position tracking) — professional,
 efficient, every addition justified. Commit locally as work lands; push/publish
 only when the repo earns it. Real data never enters git history.
 
@@ -27,18 +27,18 @@ only when the repo earns it. Real data never enters git history.
 
 - [ ] Calibration scoreboard: append-only results table; confidence→probability
       mapping (high=0.7 / med=0.55 / low=0.4); bias lifecycle (added/evidence/retired)
-- [ ] Portfolio heat: sweep digest sums open R; crypto counted as one correlated
-      cluster; aggregate heat ceiling in the spec
+- [ ] Correlation flag: sweep digest notes when multiple active calls share one
+      beta cluster (e.g. all crypto = BTC beta) — a per-asset call is weaker inside a cluster
 - [ ] Premortem line in Self-Critique Pass — red-team the synthesized call
       (regime/correlation/size), not just the thesis
 - [ ] Tier 3 model flip: opus on the synthesizer (judgment), not only workers
 - [ ] Hard gate: crypto reports fail review without a literal unlock table
 - [ ] Macro event-window line in Prediction Record (FOMC/CPI/expiry inside horizon)
-- [ ] Delete the dead Trade Log schema from the spec
+- [x] Delete the dead trade-log schema; reframe to pure research calls (no positions) — 2026-07-19
 
 ## Phase 3 — Turn it back on
 
-- [ ] Seed the watchlist with real Entry/Target/Stop per ticker (owner decides tickers)
+- [ ] Seed the watchlist with calls: Entry/Target/Stop(invalidation) per ticker (owner decides tickers)
 - [ ] First /research run under the new spec — end-to-end test of provenance,
       schema validation, calibration hooks
 

@@ -9,7 +9,7 @@ for when Yahoo/yfinance changes. Not a unit suite; just enough to catch silent r
 import subprocess
 import sys
 
-from check_levels import TRADE_LOG, parse_number, parse_watchlist
+from check_levels import WATCHLIST, parse_number, parse_watchlist
 from fetch_ohlcv import fetch
 from regime import GATE, compute_regime
 from technicals import load, compute, resolve
@@ -55,13 +55,13 @@ check("regime label valid", reg["regime"] in GATE)
 check("regime has reasons", len(reg["reasons"]) > 0)
 check("regime drawdown <= 0", reg["drawdown_90bar_pct"] <= 0)
 
-# --- level-watch: number parsing + live Trade-Log table parses ---
+# --- level-watch: number parsing + live Watchlist table parses ---
 check("parse_number plain", parse_number("443") == 443.0)
 check("parse_number range", parse_number("504-471") == (471.0, 504.0))
 check("parse_number TBD", parse_number("TBD") is None)
-wl = parse_watchlist(TRADE_LOG.read_text())
+wl = parse_watchlist(WATCHLIST.read_text())
 check("watchlist parses", isinstance(wl, list))
-if wl:  # empty watchlist is a valid state (fresh Trade-Log)
+if wl:  # empty watchlist is a valid state (fresh Watchlist)
     check("watchlist row shape", {"ticker", "type", "entry", "target", "stop", "status"} <= set(wl[0]))
 
 # --- CLI exit codes ---

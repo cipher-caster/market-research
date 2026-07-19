@@ -1,6 +1,6 @@
 # market-research — System Spec
 
-This is the contract for the owner's investment logging and research system (stocks and crypto). Any Claude session in this repo reads this first. Research sessions run from this repo; the Obsidian vault is no longer involved (fully migrated 2026-07-19).
+This is the contract for a market-research system covering stocks and crypto. It produces decisive, time-bound, scoreable BUY / HOLD / AVOID calls with defined invalidation levels — it tracks research calls, never positions. No holdings, executions, sizing, or portfolio data exist anywhere in this system. Any Claude session in this repo reads this first. Research sessions run from this repo; the Obsidian vault is no longer involved (fully migrated 2026-07-19).
 
 ## Folder Layout
 
@@ -11,7 +11,7 @@ market-research/
   engine/                ← deterministic compute layer (scripts, MCP server, cron)
   docs/                  ← design references and clippings
   data/                  ← the data layer (source of truth)
-    Trade-Log.md         ← Watchlist + Trade Log tables
+    Watchlist.md         ← the calls table (levels + status)
     Research/            ← the owner's own thesis files, one per asset
     Reports/
       Crypto/{TICKER}/   ← Agent-generated reports for a crypto asset
@@ -24,7 +24,7 @@ market-research/
 
 **This repo is private and must stay private** — `data/` holds the owner's theses, watchlist levels, and reports.
 
-Reports are split by asset class: **`data/Reports/Crypto/{TICKER}/`** and **`data/Reports/Equities/{TICKER}/`**. `_meta/` stays at the `data/Reports/` root (system-level, not per-asset). `data/Research/` and `data/Trade-Log.md` are NOT split — they stay flat.
+Reports are split by asset class: **`data/Reports/Crypto/{TICKER}/`** and **`data/Reports/Equities/{TICKER}/`**. `_meta/` stays at the `data/Reports/` root (system-level, not per-asset). `data/Research/` and `data/Watchlist.md` are NOT split — they stay flat.
 
 **Critical separation:** `data/Research/` is the owner's belief and audit trail. `data/Reports/` is agent output — inputs the owner can cite or disagree with. Never mix. Never overwrite a Research/ file with agent content.
 
@@ -34,9 +34,11 @@ Reports are split by asset class: **`data/Reports/Crypto/{TICKER}/`** and **`dat
 - Reports: `data/Reports/{Crypto|Equities}/{TICKER}/{YYYY-MM-DD}-{slug}.md` — slug e.g. `initial-deep-dive`, `earnings-followup`, `bear-case`
 - Tickers uppercase. Crypto uses common symbol (BTC, ETH, SOL).
 
-## Trade-Log.md Schema
+## Watchlist.md Schema
 
-### Watchlist / Thesis table
+### Calls table
+
+Status is the call lifecycle: `Active` (call stands), `Resolved` (target hit or thesis played out), `Invalidated` (invalidation level printed or a kill criterion hit).
 
 | Column | Format | Notes |
 |---|---|---|
@@ -47,25 +49,9 @@ Reports are split by asset class: **`data/Reports/Crypto/{TICKER}/`** and **`dat
 | Catalyst | one line | What triggers the move |
 | Entry | number or range | E.g. `20-22` |
 | Target | number | |
-| Stop | number | |
+| Stop | number | The invalidation level |
 | Horizon | e.g. `12mo`, `3mo`, `swing` | |
-| Status | `Watching` / `Holding` / `Exited` / `Invalidated` | |
-
-### Trade Log table — OPTIONAL / not maintained
-
-The owner rebalances frequently, so per-execution logging isn't worth the friction. **Do not maintain this table and do not ask the owner for fills (size/price/date).** The durable layer is the Watchlist (Status + levels + plan) plus `data/Research/` and `data/Reports/`. When the owner mentions holding something, just flip the Watchlist Status to `Holding` — don't track cost basis. Only log a row here if the owner explicitly asks to record a specific trade.
-
-| Column | Format | Notes |
-|---|---|---|
-| Date | `YYYY-MM-DD` | Execution date |
-| Asset | `[[TICKER]]` | |
-| Action | `Buy` / `Sell` / `Add` / `Trim` | |
-| Size (PHP) | number | PHP equivalent for consistency |
-| Price | number | In native currency |
-| Why | one line, ≤15 words | |
-| Exit plan | short | Target/stop/trigger |
-| Outcome | filled after exit | |
-| Review | `YYYY-MM-DD` | Date to revisit position |
+| Status | `Active` / `Resolved` / `Invalidated` | |
 
 ## Research Workflows — Tiered
 
@@ -73,13 +59,13 @@ The depth of agent research is determined by the decision being made. Don't over
 
 ### Tier 1 — Quick Check (1 sonnet agent)
 
-**When:** ticker clarification, "what is X", swing trade context, fast-news interpretation. Anything where the owner is not about to take a sizable position.
+**When:** ticker clarification, "what is X", swing trade context, fast-news interpretation. Anything that doesn't warrant a full scoreable call.
 
 **Workflow:** Single sonnet subagent, web access, one-shot report. Output to `data/Reports/{Crypto|Equities}/{TICKER}/{date}-quick-{slug}.md`. Compact format: Summary, Key Facts, Levels, Sources.
 
 ### Tier 2 — Standard Deep Dive (orchestrator + 3 parallel workers + synthesis)
 
-**Default for any asset the owner is considering taking a position in.**
+**Default for any asset the owner wants a real call on.**
 
 **Architecture:**
 1. **Fundamental worker** (sonnet) — narrative thesis, business model, catalysts, qualitative risks. NO price/numeric claims unless cited.
@@ -93,7 +79,7 @@ The depth of agent research is determined by the decision being made. Don't over
 
 ### Tier 3 — High-Stakes (same architecture, opus workers)
 
-**When:** position size >5% of portfolio, IPO with intent to participate, or call where the owner flags unusual conviction.
+**When:** the owner flags a call as high-stakes (unusual conviction, IPO coverage, a major at an inflection point).
 
 **Architecture:** identical to Tier 2 but the three parallel workers run on **opus** instead of sonnet. Synthesizer stays sonnet. The owner must explicitly request Tier 3 OR the trigger conditions above must be met.
 
@@ -138,11 +124,10 @@ This is what makes the system score-able later, so the fields below are required
 
 | Field | Value |
 |---|---|
-| Direction | long / reduce / avoid (primary, default). Optionally add a secondary **Short flag** line when the exhaustion+premium setup is present — with its own cover target and hard stop |
+| Direction | buy / hold / avoid (primary, default). Optionally add a secondary **Downside flag** line when the exhaustion+premium setup is present — with its own reversal target and invalidation level |
 | Regime | risk_on / neutral / risk_off (from `regime.py` on the class benchmark) — risk_off suspends the add levels below |
 | Add levels | breakout trigger + add-ladder rungs (from technicals; never cost-anchored). Rungs fire on reclaim confirmation, not touch |
-| Stop | `<price>` — MANDATORY for swings, defined before entry |
-| Size | R-based: position = (portfolio risk per trade ÷ stop distance %). Default risk 1% of portfolio per trade — e.g. stop 8% below entry → position ~12.5% capped at the 10% ceiling; stop 4% below → ~10% (at ceiling). State the computed % so size scales with stop distance instead of being a flat guess |
+| Stop | `<price>` — MANDATORY; the invalidation level where the call is wrong, defined when the call is issued |
 | Confidence | high / medium / low |
 | Review date | `YYYY-MM-DD` — when to score this |
 
@@ -227,7 +212,7 @@ Tools (prefix `mcp__investments__`):
 | `technicals_snapshot(ticker, asset_type, period, range_lookback)` | full technicals snapshot | crypto → exchange; stock → Yahoo |
 | `market_regime(market)` | regime gate on BTC (`crypto`) or SPY (`stocks`) | crypto → exchange; stocks → Yahoo |
 | `funding_oi(ticker)` | perp funding + OI crowding | Binance USD-M, Bybit fallback |
-| `watchlist_levels()` | the Trade-Log level-watch sweep | reuses the cron sweep |
+| `watchlist_levels()` | the Watchlist level-watch sweep | reuses the cron sweep |
 | `defillama_protocol(slug)` | TVL / fees / revenue / DEX volume | DefiLlama API |
 
 **Crypto data comes from the exchange, not Yahoo** (`exchange_ohlcv.py`): OKX primary
@@ -384,7 +369,7 @@ bands are intentionally not computed: in any uptrend they fall below the invalid
 stop, so they're unreachable noise, not an entry.)
 
 **Crypto symbols are explicit, never guessed.** Pass `--crypto` (or a `-USD` symbol)
-for any asset tagged `Type: Crypto` in Trade-Log. Bare majors like `BTC`/`ETH` are
+for any asset tagged `Type: Crypto` in Watchlist. Bare majors like `BTC`/`ETH` are
 *refused* — they are also stock tickers on Yahoo and would return the wrong asset.
 
 **Citation rule:** the snapshot's computed values count as *cited* — source is
@@ -396,43 +381,34 @@ web numbers.
 unofficial; if the script errors or returns empty, say so and fall back to cited web
 numbers rather than inventing levels. Health check: `python test_smoke.py`.
 
-## Trading Style & Risk Parameters
+## Call Style
 
-**Style: swing trading, long-primary, with an optional short-side flag.** The core book is long and primarily spot; occasionally a small amount of leverage on a long (never large, never the core of a position). Long is always the default stance and the bulk of the exposure.
+**Research calls, not positions.** The system issues BUY / HOLD / AVOID calls — long-primary, swing-horizon — and scores them later. It never tracks holdings, executions, sizing, or portfolio exposure; "risk" here means the call's invalidation level, not money at risk.
 
-**Short-side suggestions are now ALLOWED — as an explicit, secondary, opt-in flag, never the default.** When a high-conviction downside setup exists, the report should *surface* it (the owner chooses whether to take it) instead of staying silent. The primary action stays long-side (usually TRIM / WAIT / SKIP); the short is offered alongside as "if you want to play the downside." A losing bull case still defaults to reduce/trim/wait — a short is only raised when the setup below is genuinely there, not every time the bear case wins.
+**Downside calls are allowed — as an explicit, secondary, opt-in flag, never the default.** When a high-conviction downside setup exists, the report surfaces it instead of staying silent. The primary call stays long-side (usually HOLD / WAIT / AVOID); the downside flag is offered alongside. A losing bull case still defaults to HOLD/AVOID — a downside call is only raised when the setup below is genuinely there, not every time the bear case wins.
 
-**When to raise a short flag (need most of these, not just one):**
+**When to raise a downside flag (need most of these, not just one):**
 - **Exhaustion:** RSI(14) ≳ 72–75 (overbought) AND momentum rolling over (MACD histogram turning negative / bearish cross).
-- **Location:** price in deep **premium** (≳ 85–90% of the SMC dealing range) and at/through a major resistance or a vertical blow-off into the ATH — i.e. the $75/RSI-75/98.6%-of-range setup the system stayed quiet on.
-- **No fresh bid:** no imminent bullish catalyst, and for crypto, note the buyback/structural bid — do **not** short blindly into a strong mechanical bid or an intact, non-extended uptrend.
+- **Location:** price in deep **premium** (≳ 85–90% of the SMC dealing range) and at/through a major resistance or a vertical blow-off into the ATH.
+- **No fresh bid:** no imminent bullish catalyst; for crypto, note any buyback/structural bid — never call downside into a strong mechanical bid or an intact, non-extended uptrend.
 
-**Short risk rules (stricter than longs — uncapped loss):**
-- **Hard stop MANDATORY, above the swing high / invalidation, defined before entry. Non-negotiable.**
-- **Small size only**, and treat it as a tactical swing-fade, not a position — time-bound, with a defined cover target at the obvious support / add-ladder rung (cover into discount; don't get greedy).
-- Never a naked/uncapped structure; never short a thesis whose fundamentals you'd hold long in spot — this is a *price/technical* fade, not a thesis reversal.
-- If the short and a long re-entry rung point at the same level, the cover target IS that rung — fade down to where you'd want to go long, then flip.
+A downside call carries its own invalidation (above the swing high) and a defined reversal target at the obvious support / add-ladder rung. If the reversal target and a long re-entry rung point at the same level, they are one call seen from both sides.
 
-**Be decisive — this is the house style.** Every report commits to a concrete trade plan: what to do at the current level, a defined trigger/level for the next action, and time-bound price targets. "Hold and see" is not a plan. Bold, scoreable calls are the point — they get scored later by the calibration loop, which is exactly what makes boldness safe rather than reckless. Don't hedge into mush. Equally, don't fabricate precision: every price target carries a one-line valuation basis (revenue scenario × multiple ÷ supply, or a technical measured move), so a dated target is never just a vibe with a timestamp.
+**Be decisive — this is the house style.** Every report commits to a concrete call: the action at the current level, a defined trigger/level for the next action, and time-bound price targets. "Wait and see" is not a call. Bold, scoreable calls are the point — they get scored by the calibration loop, which is what makes boldness safe rather than reckless. Don't hedge into mush. Equally, don't fabricate precision: every price target carries a one-line valuation basis (revenue scenario × multiple ÷ supply, or a technical measured move), so a dated target is never a vibe with a timestamp.
 
-**Horizon: swing-primary, catalyst-matched.** Most positions run weeks-to-months around a catalyst. Targets are time-bound: give a near-term swing level **plus EOY-2026 and (where relevant) 2027 levels**, each with rationale. Use a `review_date` that fits the catalyst window.
+**Horizon: swing-primary, catalyst-matched.** Most calls run weeks-to-months around a catalyst. Targets are time-bound: a near-term swing level **plus EOY-2026 and (where relevant) 2027 levels**, each with rationale. Use a `review_date` that fits the catalyst window.
 
 Defaults (the owner can override):
 
-- **Tier 3 trigger:** position >5% of portfolio, OR IPO participation, OR the owner flags "high stakes"
-- **Max single position:** 10% of portfolio (concentration ceiling)
-- **Stop-loss MANDATORY on every swing, defined before entry. No exceptions** — leverage makes this non-negotiable.
-- **Leverage:** small only, and only with a stop set. Long side as the core; on a flagged short, leverage stays small and the hard stop is mandatory (uncapped downside makes this stricter, not looser).
-- **Shorts:** opt-in tactical fades only, small size, hard stop above invalidation, time-bound with a defined cover target. Long remains the default book.
-- **Position size for fresh ideas:** start at 1-2% unless conviction justifies more
-- **Risk per trade (R):** 1% of portfolio default. Full position size = 1% ÷ stop-distance%, capped at the 10% ceiling. Wider stop → smaller size, mechanically
-- **Regime gate:** check `regime.py` before any add/entry. risk_off = no adds (stops still execute), starter-size new longs only at the owner's explicit call
+- **Tier 3 trigger:** the owner flags a call as high-stakes
+- **Invalidation level (Stop) MANDATORY on every call, defined when the call is issued. No exceptions.**
+- **Regime gate:** check `regime.py` before any buy/add call. risk_off = no add calls (invalidation levels still resolve calls); fresh buy calls only at the owner's explicit request
 
 ## Conventions
 
 - No emojis
 - Direct tone, executive-summary-first
-- Prices in native currency, sizes in PHP
+- Prices in native currency
 - Dates always `YYYY-MM-DD`
 - One-line summary columns are hard limits — long-form belongs in Research/ or Reports/
 - All numeric claims in agent reports require source URLs or `[UNVERIFIED]` tag
@@ -441,12 +417,12 @@ Defaults (the owner can override):
 
 ### Log a watchlist entry
 1. Append row to Watchlist table
-2. If data/Research/{TICKER}.md doesn't exist, create from `Templates/Asset-Research.md`
+2. If data/Research/{TICKER}.md doesn't exist, create it with Thesis / Levels / Updates Log sections
 
-### the owner takes/changes a position
-1. Update matching Watchlist row Status (`Holding` / `Exited`) and levels — this is the durable record
-2. Append a dated entry to data/Research/{TICKER}.md Updates Log if the thesis/levels changed (ask first; never auto-edit)
-3. Trade Log execution row: skip it (optional/not maintained) unless the owner explicitly asks to record the trade
+### A call resolves (target hit / invalidation printed / kill criterion)
+1. Update the matching Watchlist row Status (`Resolved` / `Invalidated`) — the levels stay as the record of the call
+2. Run /postmortem to score it into the calibration log
+3. Append a dated entry to data/Research/{TICKER}.md Updates Log if the thesis changed (ask first; never auto-edit)
 
 ### Update existing thesis
 - Always append to Updates Log with `### YYYY-MM-DD` header
@@ -461,7 +437,7 @@ Defaults (the owner can override):
 
 ### Read patterns
 When the owner references an asset by ticker, default to:
-1. Trade-Log.md row(s) — current status
+1. Watchlist.md row(s) — current status
 2. data/Research/{TICKER}.md — the owner's thesis
 3. Latest file in data/Reports/{Crypto|Equities}/{TICKER}/ — most recent agent input
 4. `_meta/calibration.md` — current systematic biases

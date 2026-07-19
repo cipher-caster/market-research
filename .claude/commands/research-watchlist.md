@@ -6,8 +6,8 @@ scoreable deep-dive per ticker, and finish with one consolidated **ranked** summ
 Designed to run on a schedule (local cron, headless), and also on demand.
 
 **Usage:**
-- `/research-watchlist` — full watchlist (all Status rows except `Exited`/`Invalidated`)
-- `/research-watchlist holdings` — only `Status: Holding` rows (live risk; the nightly scope)
+- `/research-watchlist` — full watchlist (all Status rows except `Resolved`/`Invalidated`)
+- `/research-watchlist active` — only `Status: Active` rows (live calls; the nightly scope)
 - `/research-watchlist all` — explicit full sweep (the weekly scope)
 
 ## The contract lives in the README
@@ -21,14 +21,14 @@ high-med-low confidence scale. Use that; do not invent a numeric floor.
 
 ## Steps
 
-1. **Parse `$ARGUMENTS`** — scope is `holdings`, `all`, or empty (treat empty as `all`).
+1. **Parse `$ARGUMENTS`** — scope is `active`, `all`, or empty (treat empty as `all`).
 
 2. **Load shared context once** (not per ticker):
-   - `data/Trade-Log.md` — the Watchlist table.
+   - `data/Watchlist.md` — the Watchlist table.
    - `data/Reports/_meta/calibration.md` — inject the latest "Active biases" into every
      worker prompt as counter-weighting context.
-   - Select tickers: from the Watchlist, take rows whose Status is not `Exited` or
-     `Invalidated`. If scope is `holdings`, keep only `Status: Holding`. Note each
+   - Select tickers: from the Watchlist, take rows whose Status is not `Resolved` or
+     `Invalidated`. If scope is `active`, keep only `Status: Active`. Note each
      ticker's `Type` (Stock / Crypto) — it decides the `--crypto` flag and the
      `data/Reports/Equities|Crypto/` path.
 
@@ -47,7 +47,7 @@ high-med-low confidence scale. Use that; do not invent a numeric floor.
    (orchestrator + 3 workers) per ticker — this sweep is one agent per ticker by design.
 
 5. **Consolidate** — after all agents return, write the ranked digest (step "Digest").
-   Then surface the ranked summary to the owner. Make **no** changes to Trade-Log levels,
+   Then surface the ranked summary to the owner. Make **no** changes to Watchlist levels,
    Research/ theses, or any config — those need the owner's explicit confirmation.
 
 ## Per-ticker agent brief (fill {TICKER}, {TYPE}, {ASSET_CLASS}, {CALIBRATION})
@@ -88,12 +88,12 @@ high-med-low confidence scale. Use that; do not invent a numeric floor.
 
 Write `data/Reports/_meta/Watchlist-Scan/{YYYY-MM-DD}.md`:
 
-- **One-line header:** date, scope (holdings/all), tickers covered.
+- **One-line header:** date, scope (active/all), tickers covered.
 - **Ranked table** — sort best opportunity → worst. Columns: Rank | Ticker | Direction |
   Confidence | Verdict (one line) | Swing target (+%) | Stop | What changed.
 - **Flags** — any ticker where the technicals layer errored/fell back, any
   `[UNVERIFIED]` numbers, any thesis that may be invalidated (kill criteria near).
-- Ranking logic: Holdings with a triggered/near kill-criterion rank first (action
+- Ranking logic: Active calls with a triggered/near kill-criterion rank first (action
   needed), then highest-confidence long setups sitting in discount, then watching/no-op.
 
 Then give the owner the ranked table inline. End there — no auto-edits to thesis, levels, or config.

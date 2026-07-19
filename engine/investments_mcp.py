@@ -111,7 +111,7 @@ def funding_oi(ticker: str) -> str:
 
 @mcp.tool()
 def watchlist_levels() -> str:
-    """Level-watch sweep: parse the Watchlist in Trade-Log.md, pull live prices,
+    """Level-watch sweep: parse the calls table in Watchlist.md, pull live prices,
     report only triggered levels (stop breached/near, entry/re-entry zone, target
     hit/near) with the market regime on top. A trigger means 'run /refresh', not
     'trade'. Reuses the same sweep the cron job runs."""

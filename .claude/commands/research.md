@@ -18,10 +18,10 @@ calibration loop. **Read it and follow it.** This command only wires up the inpu
 1. **Parse `$ARGUMENTS`** — extract the ticker (uppercase) and any tier hint
    (`quick`/`tier2`/`tier3`). Triage per the README (default Tier 2).
 
-2. **Load context** — the asset's `data/Trade-Log.md` row(s), `data/Research/{TICKER}.md` (the owner's
+2. **Load context** — the asset's `data/Watchlist.md` row(s), `data/Research/{TICKER}.md` (the owner's
    thesis), and `data/Reports/_meta/calibration.md` (biases to counter-weight).
 
-3. **Pull technicals** — run the deterministic snapshot. Use `--crypto` if Trade-Log
+3. **Pull technicals** — run the deterministic snapshot. Use `--crypto` if Watchlist
    tags the asset `Type: Crypto`:
    ```bash
    cd ~/Documents/projects/market-research/engine

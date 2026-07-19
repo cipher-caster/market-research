@@ -1,6 +1,6 @@
 # /refresh — Single-asset live status refresh (stocks & crypto)
 
-Re-check ONE asset you already hold or watch: pull the live price + any catalyst since
+Re-check ONE asset with an active call: pull the live price + any catalyst since
 the last report, diff against that report, and write a short dated refresh that
 **explicitly tests the stop and kill criteria**. This is the "is anything broken right
 now?" pass — lighter than `/research` (no orchestrator, no 3 workers), narrower than
@@ -26,7 +26,7 @@ command only wires up the inputs — it does not change the rules.
 
 2. **Load context** (the asset's full local history — this is a diff pass, so the prior
    report is the baseline you compare against):
-   - `data/Trade-Log.md` — the asset's Watchlist row (Status,
+   - `data/Watchlist.md` — the asset's Watchlist row (Status,
      Entry, Target, **Stop**, Type). Note `Type` → `--crypto` flag + `Crypto|Equities` path.
    - `data/Research/{TICKER}.md` — the owner's thesis and current Levels. **Read-only. Never edit here.**
    - The **most recent file** in `data/Reports/{Crypto|Equities}/{TICKER}/` — the baseline.
@@ -87,8 +87,8 @@ command only wires up the inputs — it does not change the rules.
      (fundamentals) when they point opposite ways — honor the stop without auto-killing the thesis.
 
 6. **Summarize to the owner, then stop.** Give the verdict and the one decision he owns. Make
-   **no** edits to `data/Research/{TICKER}.md` or the Trade-Log row on your own — a stop/kill
+   **no** edits to `data/Research/{TICKER}.md` or the Watchlist row on your own — a stop/kill
    event is the most tempting moment to rewrite the thesis; don't. Ask whether to:
    - append a dated entry to `data/Research/{TICKER}.md` Updates Log, and/or
-   - flip the Watchlist Status (`Holding` → `Exited`/`Invalidated`) and adjust levels.
+   - flip the Watchlist Status (`Active` → `Resolved`/`Invalidated`) and adjust levels.
    Apply only what the owner confirms.

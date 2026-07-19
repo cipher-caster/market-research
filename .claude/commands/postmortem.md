@@ -1,7 +1,7 @@
 # /postmortem — Score a resolved call into the calibration loop
 
 Write the event-driven calibration entry the moment a call resolves: stop breached,
-target hit, kill criterion triggered, or the owner closed the position. This is what feeds the
+target hit, kill criterion triggered, or the owner withdrew the call. This is what feeds the
 auto-improvement loop — outcomes scored while fresh, not reconstructed at month-end.
 
 Use it when: the level-watch sweep (`data/Reports/_meta/Level-Watch.md`) or a `/refresh`
@@ -18,13 +18,13 @@ calibration methodology, risk rules. Read it and `data/Reports/_meta/calibration
 ## Steps
 
 1. **Parse `$ARGUMENTS`** — one ticker, uppercase. If the resolution event isn't obvious,
-   ask the owner one question (what resolved: stop / target / kill / discretionary exit) — don't guess.
+   ask the owner one question (what resolved: invalidation / target / kill / withdrawn) — don't guess.
 
 2. **Load the call being scored:**
    - The report in `data/Reports/{Crypto|Equities}/{TICKER}/` whose Prediction Record made
      the now-resolved call — usually the latest, but pick the one that SET the levels
      (entry/stop/target), not a refresh that merely re-tested them.
-   - The Watchlist row in `data/Trade-Log.md` (entry zone, stop, target, status).
+   - The Watchlist row in `data/Watchlist.md` (entry zone, stop, target, status).
    - `data/Research/{TICKER}.md` for what the owner's own thesis said. **Read-only.**
 
 3. **Pull the resolution price** — the engine lives at `~/Documents/projects/market-research/engine`
@@ -44,8 +44,7 @@ calibration methodology, risk rules. Read it and `data/Reports/_meta/calibration
 
 5. **Find the mechanical lesson.** The score is for the record; the lesson is for the
    system. Ask: was the stop placement sound? Did rungs sit between entry and stop
-   (buying weakness)? Was the regime gate respected? Was the signal found late? Was
-   position size consistent with the R rule? One honest paragraph — what the SYSTEM
+   (buying weakness)? Was the regime gate respected? Was the signal found late? One honest paragraph — what the SYSTEM
    (not the market) got right or wrong.
 
 6. **Write the entry** — append a dated `### YYYY-MM-DD — {TICKER} {event}` section at
@@ -56,4 +55,4 @@ calibration methodology, risk rules. Read it and `data/Reports/_meta/calibration
 
 7. **Summarize to the owner, then stop.** Verdict + the one lesson. Do not edit
    `data/Research/{TICKER}.md` or the Watchlist row on your own — ask whether to flip
-   Status (`Holding` → `Exited`/`Invalidated`) and apply only what the owner confirms.
+   Status (`Active` → `Resolved`/`Invalidated`) and apply only what the owner confirms.

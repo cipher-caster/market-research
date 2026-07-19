@@ -1,6 +1,6 @@
-# Trade Log
+# Watchlist
 
-## Watchlist / Thesis
+## Calls
 
 | Date | Asset | Type | Thesis | Catalyst | Entry | Target | Stop | Horizon | Status |
 |---|---|---|---|---|---|---|---|---|---|
