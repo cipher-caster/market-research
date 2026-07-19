@@ -21,7 +21,6 @@ import json
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
 
 import pandas as pd
 

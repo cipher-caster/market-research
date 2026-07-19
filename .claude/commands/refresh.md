@@ -37,7 +37,7 @@ command only wires up the inputs — it does not change the rules.
    - **Technicals (cited by construction):**
      ```bash
      cd ~/Documents/projects/market-research/engine
-     [ -d .venv ] || (python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt)
+     [ -d .venv ] || (python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]")
      . .venv/bin/activate
      python technicals.py {TICKER}            # stock
      python technicals.py {TICKER} --crypto   # crypto

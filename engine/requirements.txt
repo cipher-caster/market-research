@@ -1,4 +1,0 @@
-yfinance>=1.4.1
-pandas>=2.0
-pandas-ta>=0.3.14b0
-mcp>=1.27

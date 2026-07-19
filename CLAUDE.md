@@ -17,7 +17,7 @@ levels, and reports.
 
 ```sh
 cd engine
-[ -d .venv ] || (python3 -m venv .venv && .venv/bin/pip install -r requirements.txt)
+[ -d .venv ] || (python3 -m venv .venv && .venv/bin/pip install -e ".[dev]")
 .venv/bin/python test_smoke.py          # health check (live network test)
 .venv/bin/python technicals.py NVDA     # stock snapshot
 .venv/bin/python technicals.py BTC --crypto

@@ -27,12 +27,12 @@ os.chdir(HERE)
 
 from mcp.server.fastmcp import FastMCP
 
-import technicals
-import regime as regime_mod
-import funding as funding_mod
-import defillama as defillama_mod
 import check_levels as levels_mod
-from exchange_ohlcv import fetch_crypto, base_ticker
+import defillama as defillama_mod
+import funding as funding_mod
+import regime as regime_mod
+import technicals
+from exchange_ohlcv import base_ticker, fetch_crypto
 from fetch_ohlcv import fetch
 
 mcp = FastMCP("investments")

@@ -24,11 +24,10 @@ Exit code: 0 = ran clean (triggers or not), 1 = error. A trigger means "run
 """
 import argparse
 import re
-import sys
 
 from config import WATCHLIST
 from fetch_ohlcv import fetch
-from regime import compute_regime, GATE
+from regime import GATE, compute_regime
 from technicals import resolve
 
 NEAR_PCT = 3.0  # "near" = within 3% of the level

@@ -12,7 +12,7 @@ import sys
 from check_levels import WATCHLIST, parse_number, parse_watchlist
 from fetch_ohlcv import fetch
 from regime import GATE, compute_regime
-from technicals import load, compute, resolve
+from technicals import compute, load, resolve
 
 _failed = False
 
@@ -46,6 +46,7 @@ check("stop below price (long)", snap["stop_long_2atr"] < snap["price"])
 # --- SMC dealing range: present and internally consistent ---
 dr = snap.get("dealing_range")
 check("dealing_range present", dr is not None)
+assert dr is not None
 check("range_low <= eq <= range_high", dr["range_low"] <= dr["equilibrium"] <= dr["range_high"])
 check("zone matches pct_in_range", (dr["zone"] == "premium") == (dr["pct_in_range"] > 50))
 

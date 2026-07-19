@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market-research-engine"
+version = "0.1.0"
+description = "Deterministic compute layer for the market-research system: technicals, regime gate, funding/OI, on-chain data, level watch, MCP server"
+requires-python = ">=3.11"
+dependencies = [
+    "yfinance>=1.4.1,<2",
+    "pandas>=2.0",
+    "pandas-ta>=0.3.14b0",
+    "mcp>=1.27",
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[tool.setuptools]
+py-modules = [
+    "config",
+    "technicals",
+    "regime",
+    "funding",
+    "defillama",
+    "check_levels",
+    "fetch_ohlcv",
+    "exchange_ohlcv",
+    "investments_mcp",
+    "prediction_record",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501"]  # long lines allowed in docstrings/tables; length is advisory
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true   # yfinance/pandas-ta/mcp ship no stubs
+check_untyped_defs = true
+
+[tool.ruff.lint.per-file-ignores]
+# sys.path/chdir bootstrap must precede sibling imports in the MCP entrypoint
+"investments_mcp.py" = ["E402"]

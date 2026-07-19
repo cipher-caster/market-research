@@ -12,7 +12,7 @@ to run the code.
 ```sh
 cd ~/Documents/projects/market-research/engine
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -e ".[dev]"
 .venv/bin/python test_smoke.py
 ```
 

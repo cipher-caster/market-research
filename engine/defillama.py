@@ -19,7 +19,6 @@ URL). Endpoints that 404 for a protocol are skipped, not fatal.
 """
 import argparse
 import json
-import sys
 import urllib.error
 import urllib.request
 from datetime import date

@@ -203,8 +203,7 @@ numbers are identical and auditable on every run.
 assistant pulls live numbers **directly in-conversation** — no `python ...` runs by hand. It
 reuses the exact same `compute()` functions as the CLI scripts (identical, auditable math), so
 MCP output and CLI output agree. Registered at user scope (`claude mcp add`); the venv and the
-registration are machine-local, so on a new machine rebuild the venv (`pip install -r
-requirements.txt`) and re-run `claude mcp add` (see the engine README).
+registration are machine-local, so on a new machine rebuild the venv (`pip install -e ".[dev]"` in `engine/`) and re-run `claude mcp add` (see the engine README).
 
 Tools (prefix `mcp__investments__`):
 
@@ -232,7 +231,7 @@ the MCP path isn't (e.g. a non-Claude shell):
 
 ```bash
 cd ~/Documents/projects/market-research/engine
-[ -d .venv ] || (python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt)
+[ -d .venv ] || (python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]")
 . .venv/bin/activate
 python technicals.py MU            # stock
 python technicals.py BTC --crypto  # crypto (or pass BTC-USD directly)

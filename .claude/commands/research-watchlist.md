@@ -36,7 +36,7 @@ high-med-low confidence scale. Use that; do not invent a numeric floor.
    race across parallel agents):
    ```bash
    cd ~/Documents/projects/market-research/engine
-   [ -d .venv ] || (python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt)
+   [ -d .venv ] || (python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]")
    . .venv/bin/activate && python test_smoke.py
    ```
    If `test_smoke.py` fails, stop and report — do not spawn agents against a broken

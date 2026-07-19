@@ -19,7 +19,7 @@ import json
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 TIMEOUT = 30
 HISTORY_POINTS = 21  # 7 days of 8h funding intervals
@@ -103,7 +103,7 @@ def analyze(raw: dict) -> dict:
 
     return {
         "venue": raw["venue"],
-        "as_of": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "as_of": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         "mark_price": round(raw["mark_price"], 4),
         "funding_interval_h": round(interval_h, 1),
         "funding_now_pct": round(raw["funding_now"] * 100, 4),
