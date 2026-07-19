@@ -150,7 +150,16 @@ The whole point of the Prediction Record is making the system score-able.
 
 ### Mechanism
 
-`data/Reports/_meta/calibration.md` is a rolling log updated **on resolution events and monthly**.
+`data/Reports/_meta/calibration.md` is a rolling log updated **on resolution events and monthly**. It has two layers: a **Scoreboard table** (the data) and dated **Entries** (the narrative). The table is what compounds; the prose explains it.
+
+**Scoreboard (append-only table, most recent first):**
+
+| Scored | Ticker | Report | Direction | Conf (p) | Dir hit | Mag hit | Realized % | Event |
+|---|---|---|---|---|---|---|---|---|
+
+One row per resolved call. `Conf (p)` maps the confidence label to a probability — **high = 0.7, medium = 0.55, low = 0.4** — which makes confidence falsifiable: over N calls, the hit rate of each bucket must converge on its p, and the monthly sweep reports the gap (and the Brier score, mean of (p − outcome)²). `Dir hit` = direction correct at review/resolution. `Mag hit` = within ±50% of the swing target return. `Event` = target / invalidation / kill / withdrawn / review-matured.
+
+**Bias lifecycle:** every Active bias line carries `added: YYYY-MM-DD | evidence: N scored calls | status: active|retired`. A bias is retired (moved to the entry's Retired list, kept for audit) when the scoreboard shows the pattern corrected — e.g. three consecutive scored calls in its category without the miss it names. Priors with zero evidence after 5 scored calls in category get retired as noise. The injected context is ONLY the active list — retired biases stop costing prompt space.
 
 **Event-driven entries (the primary data feed):** the moment a stop is breached, a
 target is hit, or a kill criterion triggers, write a dated calibration entry *that day*
@@ -165,9 +174,9 @@ Process:
 1. Scan all Reports/ for Prediction Records where `review_date` has passed
 2. Pull current price for each asset
 3. Score each: direction correct? Magnitude within ±50% of target? Kill criteria triggered as expected?
-4. Compute rolling stats: hit rate by direction, by horizon, by sector
+4. Compute rolling stats from the Scoreboard: hit rate by direction, by horizon, by sector, by confidence bucket (vs implied p) + Brier score
 5. Identify systematic biases ("over-bullish on AI infra", "underweight regulatory risk on privacy", "stops too tight on swings")
-6. Append a dated entry to `calibration.md` with stats + biases
+6. Append Scoreboard rows for newly matured calls + a dated entry with stats, then apply the bias lifecycle (retire what the data has corrected)
 
 ### Feedback
 

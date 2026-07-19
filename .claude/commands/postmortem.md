@@ -47,11 +47,18 @@ calibration methodology, risk rules. Read it and `data/Reports/_meta/calibration
    (buying weakness)? Was the regime gate respected? Was the signal found late? One honest paragraph — what the SYSTEM
    (not the market) got right or wrong.
 
-6. **Write the entry** — append a dated `### YYYY-MM-DD — {TICKER} {event}` section at
-   the TOP of the Entries list in `data/Reports/_meta/calibration.md` (most recent first):
-   Event, Score, Mechanical findings, and an updated **Active biases** list (carry
-   forward still-valid priors, add/retire based on this outcome). The latest entry's
-   biases are what Tier 2/3 prompts inject — keep that list short and injectable.
+6. **Write the outcome** in `data/Reports/_meta/calibration.md`:
+   - **Scoreboard row first** (top of the table): Scored date, ticker, report filename,
+     direction, Conf (p) from the report's confidence label (high=0.7 / medium=0.55 /
+     low=0.4), Dir hit y/n, Mag hit y/n (±50% of swing target return), realized %, event.
+     Parse the report with `python prediction_record.py <report.md> --json` — score the
+     typed fields, don't re-read prose.
+   - **Then the dated entry** — `### YYYY-MM-DD — {TICKER} {event}` at the TOP of
+     Entries: Event, Score, Mechanical findings, updated **Active biases**.
+   - **Bias lifecycle:** each bias line carries `added | evidence: N | status`. Add a
+     bias only with a named scored call as evidence; retire per the README rules
+     (pattern corrected, or prior with no evidence after 5 calls in category). The
+     injected context is only the active list — keep it short.
 
 7. **Summarize to the owner, then stop.** Verdict + the one lesson. Do not edit
    `data/Research/{TICKER}.md` or the Watchlist row on your own — ask whether to flip

@@ -13,6 +13,13 @@ For each matured Prediction Record (where `review_date` has passed):
 
 Aggregate stats: hit rate by direction, by horizon, by sector; systematic biases.
 
+## Scoreboard
+
+Append-only, most recent first. Conf (p): high = 0.7, medium = 0.55, low = 0.4.
+
+| Scored | Ticker | Report | Direction | Conf (p) | Dir hit | Mag hit | Realized % | Event |
+|---|---|---|---|---|---|---|---|---|
+
 ## Entries
 
 ### 2026-07-19 — Clean slate
