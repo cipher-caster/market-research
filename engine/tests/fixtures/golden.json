@@ -1,0 +1,58 @@
+{
+ "mu_snapshot": {
+  "ticker": "MU",
+  "as_of": "2026-07-17",
+  "price": 848.95,
+  "ma20": 1023.3332,
+  "ma50": 933.574,
+  "ma200": 482.9088,
+  "pct_vs_ma20": -17.04,
+  "pct_vs_ma50": -9.06,
+  "pct_vs_ma200": 75.8,
+  "ma_posture": "golden (uptrend)",
+  "rsi14": 41.01,
+  "rsi_tag": "neutral",
+  "macd": -17.8446,
+  "macd_signal": 12.7261,
+  "macd_hist": -30.5707,
+  "atr14": 85.563,
+  "stop_long_2atr": 677.824,
+  "stop_long_2atr_pct": -20.16,
+  "support_10": 804.0,
+  "support_20": 804.0,
+  "resistance_20": 1254.807,
+  "support_50": 627.4835,
+  "resistance_50": 1254.807,
+  "add_ladder": [
+   {
+    "tier": "near",
+    "label": "recent swing low (10-bar)",
+    "level": 804.0,
+    "pct_below": -5.29
+   }
+  ],
+  "dealing_range": {
+   "lookback_bars": 60,
+   "range_high": 1254.807,
+   "range_low": 458.4895,
+   "equilibrium": 856.6482,
+   "pct_in_range": 49.0,
+   "zone": "discount"
+  },
+  "volume": 62973200.0,
+  "volume_vs_avg20_pct": 18.02
+ },
+ "btc_regime": {
+  "as_of": "2026-07-19",
+  "price": 64489.23,
+  "ma50": 63351.93,
+  "ma200": 73043.63,
+  "drawdown_90bar_pct": -22.1,
+  "ret20_pct": 7.2,
+  "rsi14": 53.8,
+  "regime": "risk_off",
+  "reasons": [
+   "price below 200-MA (64489 < 73044)"
+  ]
+ }
+}
