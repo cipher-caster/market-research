@@ -2,5 +2,5 @@
 
 ## Calls
 
-| Date | Asset | Type | Thesis | Catalyst | Entry | Target | Stop | Horizon | Status |
-|---|---|---|---|---|---|---|---|---|---|
+| Date | Asset | Type | Thesis | Catalyst | Entry | Target | Stop | Horizon | Status | Call |
+|---|---|---|---|---|---|---|---|---|---|---|

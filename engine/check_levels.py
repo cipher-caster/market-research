@@ -67,23 +67,26 @@ def parse_watchlist(text: str) -> list[dict]:
             "target": parse_number(cols[6]),
             "stop": parse_number(cols[7]),
             "status": cols[9],
+            "call": cols[10] if len(cols) > 10 else "",
         })
     return rows
 
 
-def check_row(row: dict) -> list[str] | None:
+def live_price(row: dict):
+    """(close, low) for a row's symbol, or None on a data error."""
+    sym = resolve(row["ticker"], crypto=row["type"].lower() == "crypto")
+    df = fetch(sym, "1mo")
+    if df.empty:
+        return None
+    return float(df["Close"].iloc[-1]), float(df["Low"].iloc[-1])
+
+
+def check_row(row: dict, px: float, lo: float) -> list[str] | None:
     """Trigger strings for one row, [] if levels exist but nothing fired,
     None if the row has no usable levels."""
     entry, target, stop = row["entry"], row["target"], row["stop"]
     if entry is None and target is None and stop is None:
         return None
-
-    sym = resolve(row["ticker"], crypto=row["type"].lower() == "crypto")
-    df = fetch(sym, "1mo")
-    if df.empty:
-        return [f"DATA ERROR — no Yahoo data for {sym}"]
-    px = float(df["Close"].iloc[-1])
-    lo = float(df["Low"].iloc[-1])
 
     active = row["status"].lower() == "active"
     fired = []
@@ -129,9 +132,16 @@ def main() -> None:
     has_crypto = any(r["type"].lower() == "crypto" for r in rows)
     has_stock = any(r["type"].lower() == "stock" for r in rows)
 
-    triggers, no_levels = [], []
+    triggers, no_levels, table = [], [], []
     for row in rows:
-        fired = check_row(row)
+        pxlo = live_price(row)
+        if pxlo is None:
+            triggers.append(f"**{row['ticker']}** ({row['status']}): DATA ERROR — no price data")
+            table.append((row, None))
+            continue
+        px, lo = pxlo
+        table.append((row, px))
+        fired = check_row(row, px, lo)
         if fired is None:
             no_levels.append(f"{row['ticker']} ({row['status']})")
         else:
@@ -160,6 +170,25 @@ def main() -> None:
         lines.append("No levels triggered.")
     if no_levels:
         lines += ["", f"No levels defined (skipped): {', '.join(no_levels)}"]
+
+    def lvl(px, level, hi=False):
+        """'443 (-8.2%)' — signed % distance from price to the level."""
+        if level is None or px is None:
+            return "—"
+        v = (level[1] if hi else level[0]) if isinstance(level, tuple) else level
+        txt = f"{level[0]:g}-{level[1]:g}" if isinstance(level, tuple) else f"{v:g}"
+        return f"{txt} ({(v / px - 1) * 100:+.1f}%)"
+
+    lines += ["", "**All calls:**", "",
+              "| Ticker | Call | Status | Price | Entry | Invalidation | Target |",
+              "|---|---|---|---|---|---|---|"]
+    for row, px in table:
+        lines.append(
+            f"| {row['ticker']} | {row['call'] or '—'} | {row['status']} | "
+            f"{px:g} | {lvl(px, row['entry'])} | {lvl(px, row['stop'])} | "
+            f"{lvl(px, row['target'], hi=True)} |"
+            if px is not None else
+            f"| {row['ticker']} | {row['call'] or '—'} | {row['status']} | DATA ERROR | — | — | — |")
 
     print("\n".join(lines))
 

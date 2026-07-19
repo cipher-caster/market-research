@@ -52,6 +52,7 @@ Status is the call lifecycle: `Active` (call stands), `Resolved` (target hit or 
 | Stop | number | The invalidation level |
 | Horizon | e.g. `12mo`, `3mo`, `swing` | |
 | Status | `Active` / `Resolved` / `Invalidated` | |
+| Call | `Buy` / `Hold` / `Avoid` | Latest verdict from the most recent report; update it (with the owner's confirmation) when a new report changes the call |
 
 ## Research Workflows — Tiered
 
