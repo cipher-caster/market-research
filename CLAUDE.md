@@ -48,5 +48,9 @@ available — same math, in-conversation.
   hedge; "it's uncertain" is not an answer — a quantified band with reasoning is.
 - Dates `YYYY-MM-DD`; prices in native currency.
 - `data/Research/` is the owner's audit trail — append-only, ask before touching.
-- Cron writes `data/Reports/_meta/Level-Watch.md` twice daily (08:17 / 20:17);
-  commits of report changes are normal after a sweep.
+- **Level-watch sweep is MANUAL-ONLY** (cron disabled 2026-07-19 at the owner's
+  request — his machine is off at fixed times and he wants no automatic runs).
+  Never run the sweep or re-enable the cron on your own. In a new session, when
+  market data first becomes relevant, ask the owner ONCE: "run the level-watch
+  sweep?" — run it only on his yes (engine/cron_sweep.sh refreshes
+  data/Reports/_meta/Level-Watch.md).
