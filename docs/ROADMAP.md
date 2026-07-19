@@ -10,7 +10,7 @@ only when the repo earns it. Real data never enters git history.
 - [x] Scrub personal identity/machine paths from code and docs — 2026-07-19
 - [x] Clean-slate data layer (empty watchlist, fresh calibration) — 2026-07-19
 - [x] Delete accidentally-pushed remote repo — 2026-07-19
-- [x] Data split: `data/` gitignored (machine-local); repo is the framework — 2026-07-19
+- [x] Data policy: `data/` IS tracked — progress visible in history (owner's call); repo stays private — 2026-07-19
 - [x] Initial commit (local only) — 2026-07-19
 - [ ] Delete parked pre-consolidation git history folder (owner)
 
@@ -48,7 +48,7 @@ only when the repo earns it. Real data never enters git history.
 - [ ] Decision log (e.g. "vector DB/RAG: considered, rejected until corpus scale
       demands it — revisit when reports span years")
 - [ ] Synthetic demo data + demo calibration run so the public repo demos itself
-- [ ] Flip repo public (only after all above; history is clean by construction)
+- [ ] Public portfolio version: separate clean extract (framework + synthetic data) — this repo stays private since history contains real research
 - [ ] Optional: /report-view dashboard artifact as the visual demo
 
 ## Principles

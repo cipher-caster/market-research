@@ -8,9 +8,9 @@ logs/
 # Local machine config — copy engine/.env.example to engine/.env
 .env
 
-# Real trading data — machine-local, NEVER committed (portfolio repo stays
-# publishable). The engine creates/reads data/ locally; see README Folder Layout.
-data/
+# data/ IS tracked (owner's choice 2026-07-19): the research/calibration
+# progress is part of the story. Repo must therefore stay private; a public
+# portfolio version would be a separate clean extract.
 
 # Rendered report views (artifacts/PDF intermediates) — disposable
 *.pdf
