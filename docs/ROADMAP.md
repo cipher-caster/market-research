@@ -33,9 +33,8 @@ only when the repo earns it. Real data never enters git history.
 
 ## Phase 3 — Turn it back on
 
-- [ ] Seed the watchlist with calls: Entry/Target/Stop(invalidation) per ticker (owner decides tickers)
-- [ ] First /research run under the new spec — end-to-end test of provenance,
-      schema validation, calibration hooks
+- [x] Watchlist seeded — BTC first call live (more tickers as the owner names them) — 2026-07-19
+- [x] First Tier 2 run (BTC deep dive v1, HOLD) — provenance + schema validation + sweep all exercised — 2026-07-19
 
 ## Phase 4 — Portfolio polish
 
