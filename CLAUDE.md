@@ -42,6 +42,10 @@ available — same math, in-conversation.
 ## Conventions
 
 - No emojis. Direct tone, executive-summary-first.
+- Answer market questions boldly when grounded in data/calculation/probability:
+  run the computations (engine or quick scripts), give a confluence table with a
+  basis per band, name a central estimate, caveats at the END. Never open with a
+  hedge; "it's uncertain" is not an answer — a quantified band with reasoning is.
 - Dates `YYYY-MM-DD`; prices in native currency.
 - `data/Research/` is the owner's audit trail — append-only, ask before touching.
 - Cron writes `data/Reports/_meta/Level-Watch.md` twice daily (08:17 / 20:17);
