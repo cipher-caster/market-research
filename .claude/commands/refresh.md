@@ -90,9 +90,12 @@ command only wires up the inputs — it does not change the rules.
    `python prediction_record.py <the new report.md>` — must print OK. On FAIL,
    fix the named field and re-validate before summarizing.
 
-7. **Summarize to the owner, then stop.** Give the verdict and the one decision he owns. Make
-   **no** edits to `data/Research/{TICKER}.md` or the Watchlist row on your own — a stop/kill
-   event is the most tempting moment to rewrite the thesis; don't. Ask whether to:
-   - append a dated entry to `data/Research/{TICKER}.md` Updates Log, and/or
+7. **Close out, summarize, then stop.** After the report validates (owner policy 2026-07-25):
+   auto-append a dated one-line pointer (version, verdict, report path) to
+   `data/Research/{TICKER}.md` Updates Log and commit the report + pointer — pointers only,
+   never analysis. Then give the owner the verdict and the one decision he owns. Everything
+   else stays ask-first — a stop/kill event is the most tempting moment to rewrite the
+   thesis; don't. Ask whether to:
+   - add any thesis-content entry to `data/Research/{TICKER}.md` (beyond the pointer), and/or
    - flip the Watchlist Status (`Active` → `Resolved`/`Invalidated`) and adjust levels.
    Apply only what the owner confirms.
