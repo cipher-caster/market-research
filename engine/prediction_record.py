@@ -52,12 +52,29 @@ class PredictionRecord(BaseModel):
         return v
 
 
-_NUM = r"[\d][\d,]*(?:\.\d+)?"
+_NUM = r"[-+]?[\d][\d,]*(?:\.\d+)?"  # sign must attach ([-+], not an em-dash separator)
 
 
 def _first_number(text: str) -> float | None:
     m = re.search(_NUM, text)
     return float(m.group(0).replace(",", "")) if m else None
+
+
+def _downside_flag(text: str) -> bool:
+    """True if ANY 'downside flag' mention in the cell is affirmative (README opt-in).
+
+    Reports state the *absence* of a flag far more often than its presence, so a
+    literal substring match reads inverted. An occurrence is negated when a
+    negator (no/not/without/never) sits in the ~30 chars before it, or when
+    none/absent/not follows it; any single affirmative occurrence wins.
+    """
+    for m in re.finditer(r"downside flag", text, re.I):
+        if re.search(r"\b(?:no|not|without|never)\b", text[max(0, m.start() - 30):m.start()], re.I):
+            continue
+        if re.match(r"\s*[:\-—]?\s*(?:none|absent|not\b)", text[m.end():], re.I):
+            continue
+        return True
+    return False
 
 
 def _table_rows(section: str) -> list[list[str]]:
@@ -150,7 +167,7 @@ def parse_report(text: str, ticker: str, crypto: bool = False) -> PredictionReco
         review_date=date.fromisoformat(review.group(0)),
         kill_criteria=kill.group(1).strip() if kill else "",
         targets=targets,
-        downside_flag=bool(re.search(r"downside flag", fields.get("direction", ""), re.I)),
+        downside_flag=_downside_flag(fields.get("direction", "")),
     )
 
 

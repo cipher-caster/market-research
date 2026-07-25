@@ -2,7 +2,7 @@
 import pytest
 from pydantic import ValidationError
 
-from prediction_record import parse_report
+from prediction_record import _downside_flag, parse_report
 
 GOOD = """v3 | Supersedes: 2026-07-01-deep-dive.md | Trigger: owner request
 
@@ -43,6 +43,55 @@ def test_good_report_parses():
     assert len(rec.targets) == 2
     assert rec.targets[0].price == 150000.0
     assert rec.targets[0].return_pct == 43.0
+    assert rec.downside_flag is False  # "Downside flag: none" is an absence, not a flag
+
+
+def test_downside_flag_affirmative():
+    r = GOOD.replace("| Direction | buy (primary). Downside flag: none |",
+                     "| Direction | hold (primary). Downside flag: reversal target 420, invalidation 510 |")
+    assert parse_report(r, "BTC").downside_flag is True
+    r2 = GOOD.replace("| Direction | buy (primary). Downside flag: none |",
+                      "| Direction | avoid. Downside flag raised — exhaustion + deep premium; "
+                      "reversal target 88, invalid above 112 |")
+    assert parse_report(r2, "BTC").downside_flag is True
+
+
+@pytest.mark.parametrize("direction", [
+    "Hold — no new entry while regime is risk_off; no downside flag (RSI 53.5 neutral, ...)",
+    "Hold (primary). No downside flag: despite the bearish MACD cross, RSI 49.5 is neutral ...",
+    "buy (primary). Downside flag: none",
+    "Hold (primary)",
+])
+def test_downside_flag_negations(direction):
+    r = GOOD.replace("| Direction | buy (primary). Downside flag: none |",
+                     f"| Direction | {direction} |")
+    assert parse_report(r, "BTC").downside_flag is False
+
+
+@pytest.mark.parametrize("cell, expected", [
+    # affirmative — a real secondary downside call
+    ("hold (primary). Downside flag: reversal target 420, invalidation 510", True),
+    ("avoid. Downside flag raised — exhaustion + deep premium; reversal target 88, invalid above 112", True),
+    ("No downside flag on price location, but downside flag: RSI-based reversal, target 350, invalid above 400", True),
+    # negated — absence stated, negator need not be adjacent
+    ("buy (primary). Downside flag: none", False),
+    ("Hold — no new entry while regime is risk_off; no downside flag (RSI 53.5 neutral, ...)", False),
+    ("Hold (primary). No downside flag: despite the bearish MACD cross, RSI 49.5 is neutral ...", False),
+    ("Hold (primary)", False),
+    ("Trading without a downside flag due to strong momentum.", False),
+    ("There is no obvious downside flag here.", False),
+    ("Not raising a downside flag here given the intact uptrend.", False),
+    ("No real downside flag despite the RSI cross.", False),
+])
+def test_downside_flag_classification(cell, expected):
+    assert _downside_flag(cell) is expected
+
+
+def test_signed_return_pct():
+    """A downside reversal target's negative return must keep its sign."""
+    r = GOOD.replace("| Swing (~Q3) | 150,000 | +43% | measured move from the 90-105 base |",
+                     "| Swing (~Q3) | 80,000 | -12% | downside reversal target |")
+    assert parse_report(r, "BTC").targets[0].return_pct == -12.0
 
 
 def test_missing_provenance_fails():

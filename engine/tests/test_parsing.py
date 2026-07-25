@@ -69,6 +69,20 @@ def test_check_row_stop_breach_active_only():
     assert check_row(_row(stop=90.0, status="Resolved"), px=89.0, lo=88.0) == []
 
 
+def test_check_row_stop_intra_period():
+    """A stop pierced by the lookback low but recovered fires a distinct message."""
+    r = _row(stop=90.0)
+    fired = fired_of(check_row(r, px=95.0, lo=88.0))
+    assert any("STOP BREACHED INTRA-PERIOD" in t for t in fired)
+    assert not any(t.startswith("STOP BREACHED —") for t in fired)  # current breach not claimed
+    # intra-period is Active-only, like a live breach
+    assert check_row(_row(stop=90.0, status="Resolved"), px=95.0, lo=88.0) == []
+    # low above the stop and price only mildly above: falls through to STOP NEAR
+    near = fired_of(check_row(_row(stop=90.0), px=92.0, lo=91.0))
+    assert any("STOP NEAR" in t for t in near)
+    assert not any("INTRA-PERIOD" in t for t in near)
+
+
 def test_check_row_entry_zone_tags():
     r = _row(entry=(100.0, 105.0))
     assert any("IN ENTRY ZONE" in t for t in fired_of(check_row(r, px=102.0, lo=101.0)))

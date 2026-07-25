@@ -5,6 +5,7 @@ Reads the calls table in Watchlist.md, pulls live prices, and reports ONLY
 the rows where a defined level has triggered (or is within 3%):
 
   STOP BREACHED / STOP NEAR     price at/under the invalidation level (Active rows)
+  STOP BREACHED INTRA-PERIOD    a recent daily low pierced the stop, price recovered
   IN ENTRY ZONE                 price inside/below the entry range
   TARGET HIT / TARGET NEAR      price at/over the target
 
@@ -31,6 +32,9 @@ from regime import GATE, compute_regime
 from technicals import resolve
 
 NEAR_PCT = 3.0  # "near" = within 3% of the level
+STOP_LOOKBACK = 5  # bars to scan for a pierced stop: the sweep runs twice daily
+                   # but the machine can be off for days, so a stop that gapped
+                   # through intraday and recovered must still be caught (see ZEC)
 
 
 def parse_number(cell: str):
@@ -72,17 +76,22 @@ def parse_watchlist(text: str) -> list[dict]:
 
 
 def live_price(row: dict):
-    """(close, low) for a row's symbol, or None on a data error."""
+    """(close, low) for a row's symbol, or None on a data error.
+
+    low is the min Low over the last STOP_LOOKBACK bars, not just the latest, so
+    a stop gapped through on a day the machine was off is not missed.
+    """
     sym = resolve(row["ticker"], crypto=row["type"].lower() == "crypto")
     df = fetch(sym, "1mo")
     if df.empty:
         return None
-    return float(df["Close"].iloc[-1]), float(df["Low"].iloc[-1])
+    return float(df["Close"].iloc[-1]), float(df["Low"].iloc[-STOP_LOOKBACK:].min())
 
 
 def check_row(row: dict, px: float, lo: float) -> list[str] | None:
     """Trigger strings for one row, [] if levels exist but nothing fired,
-    None if the row has no usable levels."""
+    None if the row has no usable levels. lo is the min low over the lookback
+    window, so a stop pierced intra-period still fires even after a recovery."""
     entry, target, stop = row["entry"], row["target"], row["stop"]
     if entry is None and target is None and stop is None:
         return None
@@ -92,8 +101,11 @@ def check_row(row: dict, px: float, lo: float) -> list[str] | None:
 
     if stop is not None and active:
         s = stop if isinstance(stop, float) else stop[0]
-        if px <= s or lo <= s:
+        if px <= s:  # current breach takes precedence over an intra-period pierce
             fired.append(f"STOP BREACHED — price {px:.2f} (low {lo:.2f}) vs stop {s}")
+        elif lo <= s:
+            fired.append(f"STOP BREACHED INTRA-PERIOD — low {lo:.2f} pierced stop {s}, "
+                         f"price recovered to {px:.2f}")
         elif px <= s * (1 + NEAR_PCT / 100):
             fired.append(f"STOP NEAR — price {px:.2f} within {NEAR_PCT}% of stop {s}")
 
