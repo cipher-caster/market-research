@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """Smoke test for the Investments data layer.
 
-Run:  python test_smoke.py   (inside the venv; hits Yahoo live, needs network)
+Run:  python test_smoke.py   (inside the venv; hits the exchange + Yahoo live,
+needs network)
 
 Exits non-zero if anything is broken -- this is the "is it still working?" check
-for when Yahoo/yfinance changes. Not a unit suite; just enough to catch silent rot.
+for when an exchange API or Yahoo/yfinance changes. Not a unit suite; just enough
+to catch silent rot.
 """
 import subprocess
 import sys
 
 from check_levels import WATCHLIST, parse_number, parse_watchlist
-from fetch_ohlcv import fetch
+from fetch_ohlcv import fetch, fetch_routed
 from regime import GATE, compute_regime
 from technicals import compute, load, resolve
 
@@ -24,9 +26,12 @@ def check(name: str, cond: bool) -> None:
         _failed = True
 
 
-# --- fetch: stock + crypto both return data ---
+# --- routed fetch: stock -> Yahoo, crypto -> exchange (with venue passthrough) ---
 check("fetch stock (MU) non-empty", len(fetch("MU", "6mo")) > 50)
-check("fetch crypto (BTC-USD) non-empty", len(fetch("BTC-USD", "6mo")) > 50)
+btc_df, btc_src = fetch_routed("BTC-USD", "6mo", crypto=True)
+check("routed crypto (BTC) non-empty", len(btc_df) > 50)
+check("routed crypto names a real venue",
+      btc_src in ("OKX", "Bybit", "Binance", "Yahoo Finance"))
 
 # --- resolve: explicit, no silent guessing ---
 check("resolve --crypto appends -USD", resolve("ETH", True) == "ETH-USD")
@@ -34,7 +39,7 @@ check("resolve passes -USD through", resolve("BTC-USD", False) == "BTC-USD")
 check("resolve leaves stock bare", resolve("MU", False) == "MU")
 
 # --- snapshot shape + sane values ---
-sym, df = load("MU", "1y")
+sym, df, _ = load("MU", "1y")
 snap = compute(sym, df)
 required = {"price", "ma50", "ma200", "rsi14", "macd", "atr14",
             "stop_long_2atr", "support_20", "resistance_20", "as_of", "ma_posture"}
@@ -50,8 +55,8 @@ assert dr is not None
 check("range_low <= eq <= range_high", dr["range_low"] <= dr["equilibrium"] <= dr["range_high"])
 check("zone matches pct_in_range", (dr["zone"] == "premium") == (dr["pct_in_range"] > 50))
 
-# --- regime gate: valid label + sane fields on real BTC data ---
-reg = compute_regime(fetch("BTC-USD", "2y"))
+# --- regime gate: valid label + sane fields on real BTC data (routed exchange) ---
+reg = compute_regime(fetch_routed("BTC-USD", "2y", crypto=True)[0])
 check("regime label valid", reg["regime"] in GATE)
 check("regime has reasons", len(reg["reasons"]) > 0)
 check("regime drawdown <= 0", reg["drawdown_90bar_pct"] <= 0)

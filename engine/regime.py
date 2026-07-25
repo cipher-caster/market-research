@@ -30,7 +30,7 @@ import sys
 
 import pandas_ta as ta
 
-from fetch_ohlcv import fetch
+from fetch_ohlcv import fetch_routed
 
 DRAWDOWN_LOOKBACK = 90
 RISK_OFF_DRAWDOWN = -20.0  # % from lookback high
@@ -93,7 +93,7 @@ GATE = {
 }
 
 
-def to_markdown(symbol: str, r: dict) -> str:
+def to_markdown(symbol: str, r: dict, source: str = "Yahoo Finance") -> str:
     ma200 = f"{r['ma200']}" if r["ma200"] is not None else "n/a"
     return "\n".join([
         f"### Market regime — {symbol} (as of {r['as_of']})",
@@ -104,7 +104,7 @@ def to_markdown(symbol: str, r: dict) -> str:
         f"drawdown {r['drawdown_90bar_pct']}% from 90-bar high  |  "
         f"20-bar return {r['ret20_pct']}%  |  RSI {r['rsi14']}",
         "",
-        f"Source: own computation on Yahoo Finance OHLCV ({symbol}), as of {r['as_of']}.",
+        f"Source: own computation on {source} OHLCV ({symbol}), as of {r['as_of']}.",
     ])
 
 
@@ -116,16 +116,18 @@ def main() -> None:
     p.add_argument("--json", action="store_true", help="emit JSON instead of markdown")
     args = p.parse_args()
 
-    df = fetch(args.symbol.upper(), args.period)
+    symbol = args.symbol.upper()
+    # -USD benchmark (default BTC-USD) => exchange, matching MCP; SPY etc. => Yahoo.
+    df, source = fetch_routed(symbol, args.period, crypto=symbol.endswith("-USD"))
     if df.empty:
         sys.exit(f"No data for '{args.symbol}'. Crypto needs -USD suffix.")
     if len(df) < 60:
         sys.exit(f"Only {len(df)} bars for {args.symbol}; need >=60.")
 
     r = compute_regime(df)
-    r["symbol"] = args.symbol.upper()
+    r["symbol"] = symbol
     r["gate"] = GATE[r["regime"]]
-    print(json.dumps(r, indent=2) if args.json else to_markdown(args.symbol.upper(), r))
+    print(json.dumps(r, indent=2) if args.json else to_markdown(symbol, r, source=source))
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ import sys
 import pandas as pd
 import pandas_ta as ta
 
-from fetch_ohlcv import fetch
+from fetch_ohlcv import SYMBOL_OVERRIDE, fetch_routed
 
 # Crypto symbols that ALSO exist as unrelated stock tickers on Yahoo. Passed bare
 # (without --crypto), Yahoo returns the *stock* and you get silently wrong data
@@ -30,14 +30,6 @@ from fetch_ohlcv import fetch
 AMBIGUOUS_CRYPTO = {
     "BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "AVAX", "LINK",
     "DOT", "ATOM", "NEAR", "ARB", "ZEC", "ONDO", "HYPE",
-}
-
-
-# Yahoo assigns numeric-suffixed symbols to some newer tokens, so the plain
-# {SYM}-USD form 404s (e.g. HYPE-USD is dead; Hyperliquid lives at HYPE32196-USD).
-# Map the user-facing ticker to Yahoo's actual symbol so /refresh HYPE just works.
-SYMBOL_OVERRIDE = {
-    "HYPE": "HYPE32196-USD",
 }
 
 
@@ -54,15 +46,20 @@ def resolve(ticker: str, crypto: bool) -> str:
 
 
 def load(ticker: str, period: str, crypto: bool = False):
-    """Fetch daily OHLCV for the resolved symbol; retry -USD only if empty."""
-    sym = resolve(ticker, crypto)
-    df = fetch(sym, period)
-    if df.empty and not sym.endswith("-USD"):
-        alt = f"{sym}-USD"
-        df_alt = fetch(alt, period)
-        if not df_alt.empty:
-            return alt, df_alt
-    return sym, df
+    """Fetch daily OHLCV + source via the routed path; retry as crypto if empty.
+
+    Returns (display_symbol, df, source). Crypto (the flag or a -USD suffix)
+    routes to the exchange, stocks to Yahoo. A bare symbol Yahoo can't price is
+    retried as crypto, matching the old -USD auto-retry.
+    """
+    is_crypto = crypto or ticker.upper().endswith("-USD")
+    sym = resolve(ticker, is_crypto)
+    df, source = fetch_routed(ticker, period, is_crypto)
+    if df.empty and not is_crypto:
+        alt_df, alt_source = fetch_routed(ticker, period, True)
+        if not alt_df.empty:
+            return resolve(ticker, True), alt_df, alt_source
+    return sym, df, source
 
 
 def compute(ticker: str, df: pd.DataFrame, range_lookback: int = 60) -> dict:
@@ -171,7 +168,7 @@ def compute(ticker: str, df: pd.DataFrame, range_lookback: int = 60) -> dict:
     }
 
 
-def to_markdown(s: dict) -> str:
+def to_markdown(s: dict, source: str = "Yahoo Finance") -> str:
     ma200 = f"{s['ma200']} ({s['pct_vs_ma200']:+}%)" if s["ma200"] else "n/a"
     lines = [
         f"### Technicals — {s['ticker']} (daily, as of {s['as_of']})",
@@ -199,7 +196,7 @@ def to_markdown(s: dict) -> str:
         )
     lines += [
         "",
-        f"Source: own computation on Yahoo Finance OHLCV, as of {s['as_of']}.",
+        f"Source: own computation on {source} OHLCV, as of {s['as_of']}.",
     ]
     return "\n".join(lines)
 
@@ -221,14 +218,14 @@ def main() -> None:
             f"meant the equity."
         )
 
-    ticker, df = load(args.ticker, args.period, args.crypto)
+    ticker, df, source = load(args.ticker, args.period, args.crypto)
     if df.empty:
         sys.exit(f"No data for '{args.ticker}' (tried -USD suffix too). Check the symbol.")
     if len(df) < 50:
         sys.exit(f"Only {len(df)} bars for {ticker}; need >=50 for a meaningful snapshot.")
 
     snapshot = compute(ticker, df, range_lookback=args.range_lookback)
-    print(json.dumps(snapshot, indent=2) if args.json else to_markdown(snapshot))
+    print(json.dumps(snapshot, indent=2) if args.json else to_markdown(snapshot, source=source))
 
 
 if __name__ == "__main__":

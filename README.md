@@ -250,11 +250,10 @@ python exchange_ohlcv.py BTC       # raw exchange OHLCV (OKX/Bybit/Binance)
 python technicals.py MU --json     # machine-readable
 ```
 
-**Known minor inconsistency:** `technicals.py`/`regime.py`/`check_levels.py` (and thus the
-cron sweep) still source crypto from Yahoo, while the MCP tools use the exchange. The two
-agree to <0.1%, so no decision diverges — but the cron sweep's "Source" line still says
-Yahoo. Migrate the CLI crypto path to `exchange_ohlcv.fetch_crypto` when convenient for full
-consistency.
+The CLI, the cron sweep, and the MCP tools all share one routed data path
+(`fetch_ohlcv.fetch_routed`): crypto from the exchange, stocks from Yahoo, so their numbers
+and source stamps agree by construction — the cron sweep's regime line names the real venue
+(e.g. `BTC-USD via OKX`).
 
 The snapshot reports: price, 20/50/200-MA posture (golden/death + % vs each), RSI(14),
 MACD(12,26,9), ATR(14) with a 2·ATR long-stop suggestion, 10/20/50-bar support &
@@ -384,9 +383,10 @@ for any asset tagged `Type: Crypto` in Watchlist. Bare majors like `BTC`/`ETH` a
 *refused* — they are also stock tickers on Yahoo and would return the wrong asset.
 
 **Citation rule:** the snapshot's computed values count as *cited* — source is
-already stamped "own computation on Yahoo Finance OHLCV, as of {date}". No
-`[UNVERIFIED]` tag needed. This is the deterministic counterpart to cite-or-fail on
-web numbers.
+already stamped "own computation on {venue} OHLCV, as of {date}", where {venue} is
+the real source (an exchange — OKX/Bybit/Binance — for crypto, Yahoo Finance for
+stocks). No `[UNVERIFIED]` tag needed. This is the deterministic counterpart to
+cite-or-fail on web numbers.
 
 **Resolution:** daily, ≥200 bars for the 200-MA (default `--period 1y`). yfinance is
 unofficial; if the script errors or returns empty, say so and fall back to cited web

@@ -70,6 +70,11 @@ second-pass verified. Work is delegated in batches; statuses updated as they lan
 - **F2** CI tests only 3.12; dev runs 3.11 — a small matrix would catch drift.
 - **F3** `check_levels` stop logic is long-only; a downside call's stop sits
   above price. Revisit when the first downside flag goes live.
+- **F5** ZEC cross-source basis (accepted 2026-07-25): OKX ZEC-USDT vs Yahoo's
+  ZEC-USD aggregate differ 0.12–0.20% — over the 0.1% validation threshold BTC
+  meets. Venue basis on a thin alt, not a routing defect; the exchange number
+  is canonical (matches the owner's TradingView charts) and ~$1 on ~$500 moves
+  no ZEC level. Re-check only if a level decision ever lands inside the basis.
 - **F4** `_downside_flag` residual heuristic edge (accepted 2026-07-25): a
   whole-word negator within ~30 chars *before* a genuinely raised flag (e.g.
   "no adds; downside flag: reversal target 420") still parses False. All
@@ -83,7 +88,7 @@ second-pass verified. Work is delegated in batches; statuses updated as they lan
 |---|---|---|
 | 1 — data integrity | A1, A2, A3, D4 | done (2026-07-25) — implemented, reviewed (one review loop on `_downside_flag`), verified: 39 tests, ruff+mypy clean |
 | 2 — CI + hygiene | C2 (with quick-report exclusion), E1–E4 | done (2026-07-25) — implemented, reviewed clean, verified: 45 tests, `--all` gate green in CI |
-| 3 — crypto source consistency | B1 + live re-validation | in progress (2026-07-25) — owner approved one sweep run as end-to-end check |
-| 4 — calibration engine | C1 (trimmed), D1–D3 | pending (may defer C1 to post-2026-09) |
+| 3 — crypto source consistency | B1 + live re-validation | done (2026-07-25) — routed path live, reviewed clean; BTC cross-source <0.1%, regime label identical, sweep validated via OKX |
+| 4 — calibration engine | C1 (trimmed), D1–D3 | in progress (2026-07-25) — owner resolved deferral: build now, keep minimal |
 
 Order: 1 → 2 → 3 → 4. Integrity first; enhancements last.

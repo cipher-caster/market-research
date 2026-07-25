@@ -27,9 +27,8 @@ import argparse
 import re
 
 from config import WATCHLIST
-from fetch_ohlcv import fetch
+from fetch_ohlcv import fetch_routed
 from regime import GATE, compute_regime
-from technicals import resolve
 
 NEAR_PCT = 3.0  # "near" = within 3% of the level
 STOP_LOOKBACK = 5  # bars to scan for a pierced stop: the sweep runs twice daily
@@ -78,11 +77,11 @@ def parse_watchlist(text: str) -> list[dict]:
 def live_price(row: dict):
     """(close, low) for a row's symbol, or None on a data error.
 
-    low is the min Low over the last STOP_LOOKBACK bars, not just the latest, so
-    a stop gapped through on a day the machine was off is not missed.
+    Routes by the row's Type: crypto -> exchange, stock -> Yahoo. low is the min
+    Low over the last STOP_LOOKBACK bars, not just the latest, so a stop gapped
+    through on a day the machine was off is not missed.
     """
-    sym = resolve(row["ticker"], crypto=row["type"].lower() == "crypto")
-    df = fetch(sym, "1mo")
+    df, _ = fetch_routed(row["ticker"], "1mo", crypto=row["type"].lower() == "crypto")
     if df.empty:
         return None
     return float(df["Close"].iloc[-1]), float(df["Low"].iloc[-STOP_LOOKBACK:].min())
@@ -165,12 +164,12 @@ def main() -> None:
     for bench, wanted in (("BTC-USD", has_crypto), ("SPY", has_stock)):
         if not wanted:
             continue
-        bdf = fetch(bench, "2y")
+        bdf, bsrc = fetch_routed(bench, "2y", crypto=bench.endswith("-USD"))
         if bdf.empty:
             lines.append(f"- Regime ({bench}): DATA ERROR")
             continue
         r = compute_regime(bdf)
-        lines.append(f"- **Regime ({bench}): {r['regime'].upper()}** — "
+        lines.append(f"- **Regime ({bench} via {bsrc}): {r['regime'].upper()}** — "
                      f"{'; '.join(r['reasons'])}. Gate: {GATE[r['regime']]}")
     lines.append("")
 

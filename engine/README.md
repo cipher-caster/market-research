@@ -30,7 +30,7 @@ regime.py            risk-on/neutral/off gate on the benchmark
 funding.py           perp funding + open interest (Binance/Bybit)
 defillama.py         on-chain TVL/fees/revenue
 check_levels.py      watchlist level-watch sweep (the cron job)
-fetch_ohlcv.py       Yahoo OHLCV (stocks)
+fetch_ohlcv.py       routed OHLCV — fetch_routed(): crypto -> exchange, stocks -> Yahoo
 exchange_ohlcv.py    crypto OHLCV from OKX -> Bybit -> Binance (matches TradingView)
 test_smoke.py        live smoke test — "is it still working?"
 cron_sweep.sh        cron entry: runs check_levels.py, writes ../data/Reports/_meta/Level-Watch.md
@@ -83,8 +83,10 @@ new machine.
 
 ## Data sources
 
-Crypto OHLCV comes from the exchange (OKX -> Bybit -> Binance) so numbers match
-the TradingView crypto charts the owner trades off. Stocks use Yahoo Finance. Validated
+One routed path (`fetch_ohlcv.fetch_routed`) feeds the CLI, the cron sweep, and the MCP
+tools alike: crypto OHLCV comes from the exchange (OKX -> Bybit -> Binance, Yahoo
+`{BASE}-USD` only if every venue fails) so numbers match the TradingView crypto charts the
+owner trades off; stocks use Yahoo Finance. The source stamp names the real venue. Validated
 2026-06-11: exchange vs Yahoo agreed to <0.1% on BTC/ZEC/HYPE.
 
 ## History

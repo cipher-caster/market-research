@@ -16,7 +16,6 @@ Run: python investments_mcp.py   (stdio; registered via `claude mcp add`)
 """
 import io
 import os
-import re
 import sys
 from contextlib import redirect_stdout
 
@@ -32,22 +31,10 @@ import defillama as defillama_mod
 import funding as funding_mod
 import regime as regime_mod
 import technicals
-from exchange_ohlcv import base_ticker, fetch_crypto
-from fetch_ohlcv import fetch
+from exchange_ohlcv import base_ticker
+from fetch_ohlcv import fetch_routed
 
 mcp = FastMCP("investments")
-
-# Matches both stamp variants: technicals' bare stamp and regime's "(SYMBOL)" suffix,
-# consuming up to the ", as of" so neither leaves a doubled venue label.
-_YF_STAMP_RE = re.compile(r"Source: own computation on Yahoo Finance OHLCV[^,]*")
-
-
-def _retag(md: str, venue: str) -> str:
-    """Swap the Yahoo source stamp for the real exchange venue (crypto path)."""
-    return _YF_STAMP_RE.sub(
-        f"Source: own computation on {venue} OHLCV (matches your TradingView {venue} chart)",
-        md,
-    )
 
 
 @mcp.tool()
@@ -57,21 +44,14 @@ def technicals_snapshot(ticker: str, asset_type: str = "crypto",
     stop, support/resistance, uptrend add-ladder, and the SMC dealing range
     (premium/discount). asset_type 'crypto' pulls exchange data (OKX/Bybit/Binance,
     matches TradingView); 'stock' pulls Yahoo Finance. period: 1y/2y/5y/max."""
-    if asset_type.lower() == "crypto":
-        df, src = fetch_crypto(ticker, period)
-        if df.empty:
-            return f"No exchange data for '{ticker}' (OKX/Bybit/Binance). Check the symbol."
-        if len(df) < 50:
-            return f"Only {len(df)} bars for {ticker}; need >=50 for a snapshot."
-        snap = technicals.compute(base_ticker(ticker), df, range_lookback=range_lookback)
-        return _retag(technicals.to_markdown(snap), src)
-    # stock
-    sym, df = technicals.load(ticker, period, crypto=False)
+    crypto = asset_type.lower() == "crypto"
+    sym, df, src = technicals.load(ticker, period, crypto=crypto)
     if df.empty:
-        return f"No Yahoo data for '{ticker}'. Check the symbol."
+        return f"No data for '{ticker}'. Check the symbol."
     if len(df) < 50:
         return f"Only {len(df)} bars for {sym}; need >=50 for a snapshot."
-    return technicals.to_markdown(technicals.compute(sym, df, range_lookback=range_lookback))
+    snap = technicals.compute(sym, df, range_lookback=range_lookback)
+    return technicals.to_markdown(snap, source=src)
 
 
 @mcp.tool()
@@ -80,19 +60,15 @@ def market_regime(market: str = "crypto") -> str:
     'is this a place to be adding risk at all?' check. market 'crypto' uses BTC
     (exchange data); 'stocks' uses SPY (Yahoo). risk_off => add rungs suspended."""
     if market.lower() in ("crypto", "btc"):
-        df, src = fetch_crypto("BTC", "2y")
-        if df.empty or len(df) < 60:
-            return "No/insufficient BTC exchange data for a regime read."
-        r = regime_mod.compute_regime(df)
-        r["gate"] = regime_mod.GATE[r["regime"]]
-        return _retag(regime_mod.to_markdown(f"BTC ({src})", r), src)
-    # stocks
-    df = fetch("SPY", "2y")
+        symbol, crypto = "BTC-USD", True
+    else:
+        symbol, crypto = "SPY", False
+    df, src = fetch_routed(symbol, "2y", crypto=crypto)
     if df.empty or len(df) < 60:
-        return "No/insufficient SPY data for a regime read."
+        return f"No/insufficient {symbol} data for a regime read."
     r = regime_mod.compute_regime(df)
     r["gate"] = regime_mod.GATE[r["regime"]]
-    return regime_mod.to_markdown("SPY", r)
+    return regime_mod.to_markdown(base_ticker(symbol) if crypto else symbol, r, source=src)
 
 
 @mcp.tool()
