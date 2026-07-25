@@ -89,6 +89,10 @@ second-pass verified. Work is delegated in batches; statuses updated as they lan
 | 1 — data integrity | A1, A2, A3, D4 | done (2026-07-25) — implemented, reviewed (one review loop on `_downside_flag`), verified: 39 tests, ruff+mypy clean |
 | 2 — CI + hygiene | C2 (with quick-report exclusion), E1–E4 | done (2026-07-25) — implemented, reviewed clean, verified: 45 tests, `--all` gate green in CI |
 | 3 — crypto source consistency | B1 + live re-validation | done (2026-07-25) — routed path live, reviewed clean; BTC cross-source <0.1%, regime label identical, sweep validated via OKX |
-| 4 — calibration engine | C1 (trimmed), D1–D3 | in progress (2026-07-25) — owner resolved deferral: build now, keep minimal |
+| 4 — calibration engine | C1 (trimmed), D1–D3 | done (2026-07-25) — calibration.py + 31 characterization tests (79 total); review caught one README contract-drift line, fixed |
+
+All four batches landed 2026-07-25. Remaining open items are the F-risks above
+(F1 pandas-ta migration, F2 CI matrix, F3 short-side stops — future decisions;
+F4/F5 accepted).
 
 Order: 1 → 2 → 3 → 4. Integrity first; enhancements last.

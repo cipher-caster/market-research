@@ -23,3 +23,4 @@ INVESTMENTS = DATA
 WATCHLIST = INVESTMENTS / "Watchlist.md"
 REPORTS = INVESTMENTS / "Reports"
 LEVEL_WATCH = REPORTS / "_meta" / "Level-Watch.md"
+CALIBRATION = REPORTS / "_meta" / "calibration.md"

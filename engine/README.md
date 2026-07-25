@@ -32,6 +32,7 @@ defillama.py         on-chain TVL/fees/revenue
 check_levels.py      watchlist level-watch sweep (the cron job)
 fetch_ohlcv.py       routed OHLCV — fetch_routed(): crypto -> exchange, stocks -> Yahoo
 exchange_ohlcv.py    crypto OHLCV from OKX -> Bybit -> Binance (matches TradingView)
+calibration.py       scoreboard stats — per-bucket hit rate vs implied p, Brier score
 test_smoke.py        live smoke test — "is it still working?"
 cron_sweep.sh        cron entry: runs check_levels.py, writes ../data/Reports/_meta/Level-Watch.md
 ```

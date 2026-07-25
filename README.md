@@ -176,7 +176,7 @@ Process:
 1. Scan all Reports/ for Prediction Records where `review_date` has passed
 2. Pull current price for each asset
 3. Score each: direction correct? Magnitude within ±50% of target? Kill criteria triggered as expected?
-4. Compute rolling stats from the Scoreboard: hit rate by direction, by horizon, by sector, by confidence bucket (vs implied p) + Brier score
+4. Compute rolling stats from the Scoreboard: `engine/calibration.py` covers hit rate by confidence bucket (vs implied p), Brier score, and hit rate by direction; horizon/sector splits stay a manual step in the dated entry until the Scoreboard grows columns for them
 5. Identify systematic biases ("over-bullish on AI infra", "underweight regulatory risk on privacy", "stops too tight on swings")
 6. Append Scoreboard rows for newly matured calls + a dated entry with stats, then apply the bias lifecycle (retire what the data has corrected)
 
