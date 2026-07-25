@@ -23,7 +23,7 @@ fast with a clear message.
 ## Layout
 
 ```
-config.py            data bridge — resolves ../data, exposes TRADE_LOG/REPORTS paths
+config.py            data bridge — resolves ../data, exposes WATCHLIST/REPORTS paths
 investments_mcp.py   MCP server (FastMCP, stdio) — the primary interface, 5 tools
 technicals.py        MA/RSI/MACD/ATR, S/R, SMC dealing range
 regime.py            risk-on/neutral/off gate on the benchmark

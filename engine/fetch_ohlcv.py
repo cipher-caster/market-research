@@ -10,7 +10,7 @@ Usage:
     python fetch_ohlcv.py AAPL
     python fetch_ohlcv.py BTC-USD --period 2y
     python fetch_ohlcv.py NVDA --period 60d --interval 1h   # intraday: <=60d
-    python fetch_ohlcv.py MU --stdout                        # print, don't save
+    python fetch_ohlcv.py MU --stdout                       # raw CSV instead of a summary
 
 Notes:
   - Crypto needs the -USD suffix: BTC-USD, ETH-USD, SOL-USD.
@@ -19,14 +19,11 @@ Notes:
 """
 import argparse
 import sys
-from pathlib import Path
 
 try:
     import yfinance as yf
 except ImportError:
-    sys.exit("yfinance not installed. Run: pip install -r requirements.txt")
-
-DATA_DIR = Path(__file__).parent / "data"
+    sys.exit('yfinance not installed. Run: pip install -e ".[dev]"')
 
 
 def fetch(ticker: str, period: str, interval: str = "1d"):
@@ -45,7 +42,7 @@ def fetch(ticker: str, period: str, interval: str = "1d"):
 
 def main() -> None:
     p = argparse.ArgumentParser(
-        description="Fetch OHLCV -> CSV (stocks & crypto via Yahoo Finance)"
+        description="Fetch OHLCV (stocks & crypto via Yahoo Finance)"
     )
     p.add_argument("ticker", help="e.g. AAPL, NVDA, BTC-USD, ETH-USD")
     p.add_argument("--period", default="1y",
@@ -53,7 +50,7 @@ def main() -> None:
     p.add_argument("--interval", default="1d",
                    help="1d,1wk; intraday 1h/15m only ~60d (default: 1d)")
     p.add_argument("--stdout", action="store_true",
-                   help="print CSV to stdout instead of writing a file")
+                   help="print CSV instead of a summary")
     args = p.parse_args()
 
     df = fetch(args.ticker, args.period, args.interval)
@@ -67,13 +64,9 @@ def main() -> None:
         print(df.to_csv())
         return
 
-    DATA_DIR.mkdir(exist_ok=True)
-    out = DATA_DIR / f"{args.ticker.upper()}_{args.interval}.csv"
-    df.to_csv(out)
     last = df.iloc[-1]
-    print(f"Wrote {len(df)} rows -> {out}")
-    print(f"Latest {df.index[-1].date()}: "
-          f"close={last['Close']:.4f} vol={last['Volume']:.0f}")
+    print(f"{args.ticker.upper()}: {len(df)} rows, "
+          f"latest {df.index[-1].date()} close={last['Close']:.4f} vol={last['Volume']:.0f}")
 
 
 if __name__ == "__main__":

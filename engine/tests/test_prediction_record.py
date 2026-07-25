@@ -2,7 +2,7 @@
 import pytest
 from pydantic import ValidationError
 
-from prediction_record import _downside_flag, parse_report
+from prediction_record import _downside_flag, is_scoreable_report, parse_report
 
 GOOD = """v3 | Supersedes: 2026-07-01-deep-dive.md | Trigger: owner request
 
@@ -155,3 +155,15 @@ def test_direction_earliest_keyword_wins():
     r = GOOD.replace("| Direction | buy (primary). Downside flag: none |",
                      "| Direction | hold (primary) — no buy call until the reclaim confirms |")
     assert parse_report(r, "BTC").direction == "hold"
+
+
+@pytest.mark.parametrize("path, expected", [
+    ("data/Reports/Crypto/BTC/2026-07-24-deep-dive.md", True),
+    ("data/Reports/Equities/NVDA/2026-07-24-status-refresh.md", True),
+    ("data/Reports/_meta/calibration.md", False),  # not a ticker report
+    ("data/Reports/_meta/Watchlist-Scan-2026-07-24.md", False),
+    ("data/Reports/Crypto/BTC/Watchlist-Scan-2026-07-24.md", False),
+    ("data/Reports/Crypto/HYPE/2026-07-24-quick-listing-check.md", False),  # Tier 1, no PR
+])
+def test_is_scoreable_report(path, expected):
+    assert is_scoreable_report(path) is expected

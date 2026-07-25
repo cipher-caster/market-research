@@ -186,6 +186,20 @@ def validate_file(path) -> tuple[bool, str]:
         return False, f"FAIL  {p.name}  {first}"
 
 
+def is_scoreable_report(path) -> bool:
+    """True if a report is expected to carry a Prediction Record.
+
+    Excludes _meta (not a ticker report), Watchlist-Scan sweeps, and Tier 1
+    quick checks (`{date}-quick-{slug}.md` per the root README's Tier 1
+    contract — one-shot, no scoreable call, no Prediction Record by design).
+    """
+    from pathlib import Path
+    p = Path(path)
+    return (p.parent.name not in ("_meta",)
+            and "Watchlist-Scan" not in str(p)
+            and "-quick-" not in p.name)
+
+
 def main() -> None:
     from config import REPORTS
     ap = argparse.ArgumentParser(description="Validate Prediction Records in reports")
@@ -196,8 +210,7 @@ def main() -> None:
 
     paths = list(args.paths)
     if args.all:
-        paths += [p for p in REPORTS.rglob("*.md")
-                  if p.parent.name not in ("_meta",) and "Watchlist-Scan" not in str(p)]
+        paths += [p for p in REPORTS.rglob("*.md") if is_scoreable_report(p)]
     if not paths:
         ap.error("give report paths or --all")
 

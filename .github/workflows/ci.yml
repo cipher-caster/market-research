@@ -25,3 +25,5 @@ jobs:
         run: mypy *.py tests/*.py
       - name: Tests (deterministic, no network)
         run: pytest
+      - name: Validate report contracts
+        run: python prediction_record.py --all

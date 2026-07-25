@@ -3,6 +3,7 @@
 venv/
 __pycache__/
 *.pyc
+*.egg-info/
 logs/
 
 # Local machine config — copy engine/.env.example to engine/.env

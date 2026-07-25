@@ -82,8 +82,8 @@ second-pass verified. Work is delegated in batches; statuses updated as they lan
 | Batch | Items | Status |
 |---|---|---|
 | 1 — data integrity | A1, A2, A3, D4 | done (2026-07-25) — implemented, reviewed (one review loop on `_downside_flag`), verified: 39 tests, ruff+mypy clean |
-| 2 — CI + hygiene | C2 (with quick-report exclusion), E1–E4 | in progress (2026-07-25) |
-| 3 — crypto source consistency | B1 + live re-validation | pending |
+| 2 — CI + hygiene | C2 (with quick-report exclusion), E1–E4 | done (2026-07-25) — implemented, reviewed clean, verified: 45 tests, `--all` gate green in CI |
+| 3 — crypto source consistency | B1 + live re-validation | in progress (2026-07-25) — owner approved one sweep run as end-to-end check |
 | 4 — calibration engine | C1 (trimmed), D1–D3 | pending (may defer C1 to post-2026-09) |
 
 Order: 1 → 2 → 3 → 4. Integrity first; enhancements last.
