@@ -61,7 +61,7 @@ def _first_number(text: str) -> float | None:
 
 
 def _downside_flag(text: str) -> bool:
-    """True if ANY 'downside flag' mention in the cell is affirmative (README opt-in).
+    """True if ANY 'downside flag' mention in the cell is affirmative (SPEC.md opt-in).
 
     Reports state the *absence* of a flag far more often than its presence, so a
     literal substring match reads inverted. An occurrence is negated when a
@@ -102,8 +102,8 @@ def parse_report(text: str, ticker: str, crypto: bool = False) -> PredictionReco
     """Extract the Prediction Record fields from a report's markdown.
 
     Raises ValueError (parse) or pydantic.ValidationError (content) on failure —
-    both mean the report violates the contract in README.md. With crypto=True,
-    a missing Token Unlocks table is a failure (the README's hard gate).
+    both mean the report violates the contract in docs/SPEC.md. With crypto=True,
+    a missing Token Unlocks table is a failure (the spec's hard gate).
     """
     if crypto and not has_unlock_table(text):
         raise ValueError("crypto report missing the Token Unlocks table "
@@ -190,7 +190,7 @@ def is_scoreable_report(path) -> bool:
     """True if a report is expected to carry a Prediction Record.
 
     Excludes _meta (not a ticker report), Watchlist-Scan sweeps, and Tier 1
-    quick checks (`{date}-quick-{slug}.md` per the root README's Tier 1
+    quick checks (`{date}-quick-{slug}.md` per docs/SPEC.md's Tier 1
     contract — one-shot, no scoreable call, no Prediction Record by design).
     """
     from pathlib import Path

@@ -4,7 +4,7 @@ The deterministic compute layer for the market-research system — Python venv,
 MCP server, cron. It reads and writes the sibling `data/` folder in this repo.
 
 The *system spec* — research tiers, Prediction Record format, calibration loop —
-lives at the repo root `README.md`. That's the contract; this README is just how
+lives at `docs/SPEC.md` (repo root). That's the contract; this README is just how
 to run the code.
 
 ## Setup

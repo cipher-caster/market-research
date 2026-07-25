@@ -13,7 +13,7 @@ Regime rules (computed on the benchmark, default BTC-USD for crypto):
                AND drawdown from 90-bar high < 10%
   neutral   -- everything else
 
-Gate (enforced by the README, reported here):
+Gate (enforced by docs/SPEC.md, reported here):
   risk_off -> add-ladder rungs SUSPENDED. Stops and exits still execute.
               New longs: starter size only, at the owner's explicit call.
   neutral  -> rungs need reclaim confirmation (mandatory anyway).

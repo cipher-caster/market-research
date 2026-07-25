@@ -38,7 +38,8 @@ only when the repo earns it. Real data never enters git history.
 
 ## Phase 4 — Portfolio polish
 
-- [ ] Showcase README: architecture diagram, calibration-loop story
+- [ ] Showcase README: architecture diagram, calibration-loop story (short
+      README + docs/SPEC.md contract split done 2026-07-25)
 - [ ] Decision log (e.g. "vector DB/RAG: considered, rejected until corpus scale
       demands it — revisit when reports span years")
 - [ ] Synthetic demo data + demo calibration run so the public repo demos itself

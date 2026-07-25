@@ -3,10 +3,10 @@
 ## What This Repo Is
 
 A market-research system for stocks and crypto — it issues scoreable buy/hold/avoid calls with invalidation levels; it tracks calls, never positions. One repo holds everything:
-the system contract (`README.md`), the research skills (`.claude/commands/`),
+the system contract (`docs/SPEC.md`), the research skills (`.claude/commands/`),
 the deterministic compute layer (`engine/`), and the data layer (`data/`).
 
-**Read `README.md` first for any research task.** It defines
+**Read `docs/SPEC.md` first for any research task.** It defines
 the tiered agent workflows, the Prediction Record format, risk rules, and the
 calibration loop. This file only covers repo mechanics.
 
@@ -30,7 +30,8 @@ available — same math, in-conversation.
 
 ## Structure
 
-- `README.md` — the system spec (the contract; read it, follow it)
+- `README.md` — short front door (tour + quick start)
+- `docs/SPEC.md` — the system spec (the contract; read it, follow it)
 - `.claude/commands/` — `/research`, `/refresh`, `/postmortem`, `/research-watchlist`, `/report-view` (render a report .md as a private artifact or PDF on request; .md stays canonical)
 - `engine/` — Python compute layer; setup in `engine/README.md`
 - `data/Watchlist.md` — the calls table (source of truth for levels/status)
@@ -47,7 +48,8 @@ available — same math, in-conversation.
   basis per band, name a central estimate, caveats at the END. Never open with a
   hedge; "it's uncertain" is not an answer — a quantified band with reasoning is.
 - Dates `YYYY-MM-DD`; prices in native currency.
-- `data/Research/` is the owner's audit trail — append-only, ask before touching.
+- `data/Research/` is the owner's audit trail — append-only; agents add only the
+  dated one-line report pointers (owner policy 2026-07-25), everything else ask-first.
 - **Level-watch sweep is MANUAL-ONLY** (cron disabled 2026-07-19 at the owner's
   request — his machine is off at fixed times and he wants no automatic runs).
   Never run the sweep or re-enable the cron on your own. In a new session, when

@@ -10,9 +10,9 @@ flags a stop/target/kill event, or the owner says he exited/got stopped on somet
 **Usage:**
 - `/postmortem ZEC` — score the most recent resolved Prediction Record for one ticker
 
-## The contract lives in the README
+## The contract lives in docs/SPEC.md
 
-`README.md (repo root)` is the source of truth — Prediction Record format,
+`docs/SPEC.md` is the source of truth — Prediction Record format,
 calibration methodology, risk rules. Read it and `data/Reports/_meta/calibration.md` first.
 
 ## Steps
@@ -56,7 +56,7 @@ calibration methodology, risk rules. Read it and `data/Reports/_meta/calibration
    - **Then the dated entry** — `### YYYY-MM-DD — {TICKER} {event}` at the TOP of
      Entries: Event, Score, Mechanical findings, updated **Active biases**.
    - **Bias lifecycle:** each bias line carries `added | evidence: N | status`. Add a
-     bias only with a named scored call as evidence; retire per the README rules
+     bias only with a named scored call as evidence; retire per the spec's rules
      (pattern corrected, or prior with no evidence after 5 calls in category). The
      injected context is only the active list — keep it short.
 

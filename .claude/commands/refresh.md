@@ -12,9 +12,9 @@ a known catalyst date (unlock, earnings, ETF) just hit, or a scheduled review_da
 **Usage:**
 - `/refresh HYPE` — live refresh of one asset
 
-## The contract lives in the README
+## The contract lives in docs/SPEC.md
 
-`README.md (repo root)` is the source of truth: long-only/no-leverage
+`docs/SPEC.md` is the source of truth: long-only/no-leverage
 rules, the Prediction Record format, the technicals layer, the calibration loop.
 **Read it and CLAUDE.md first; never override the owner's documented preferences.** This
 command only wires up the inputs — it does not change the rules.
@@ -51,7 +51,7 @@ command only wires up the inputs — it does not change the rules.
      python regime.py            # crypto benchmark (BTC-USD); use SPY for stocks
      ```
      State the regime in the Prediction Record. risk_off = add rungs suspended (stops
-     still execute) — see the README's gate rules.
+     still execute) — see the spec's gate rules.
    - **Positioning (crypto only):**
      ```bash
      python funding.py {TICKER}  # funding + OI crowding read (Binance/Bybit)
@@ -66,9 +66,9 @@ command only wires up the inputs — it does not change the rules.
 
 4. **Test the triggers — this is the whole point.** Against the live price, state plainly:
    - **Stop:** is it breached? On an **intraday** print, a **daily close**, or not at all?
-     The README's stop rule is *mandatory, no exceptions* — read a hard stop on the
+     The spec's stop rule is *mandatory, no exceptions* — read a hard stop on the
      intraday/hard basis and name the close-basis fork honestly if price is hovering at it.
-     A breached stop is a **reduce/exit** call. Per the README, you MAY also add a
+     A breached stop is a **reduce/exit** call. Per the spec, you MAY also add a
      secondary opt-in **short flag** when the exhaustion+premium setup is present (hard
      stop above invalidation + a defined cover target) — but long stays the default.
    - **Kill criteria:** walk each one from the baseline report; mark triggered / near / clear.
@@ -76,7 +76,7 @@ command only wires up the inputs — it does not change the rules.
      low-risk add and name the discount rung instead — never a cost-anchored "a bit below."
 
 5. **Write** `data/Reports/{Crypto|Equities}/{TICKER}/{YYYY-MM-DD}-status-refresh.md`:
-   - Provenance header first line (`v{N} | Supersedes: {baseline file} | Trigger: ...` — see README), then `## Prediction Record` at the TOP — Verdict (lead with any stop/kill event; put the
+   - Provenance header first line (`v{N} | Supersedes: {baseline file} | Trigger: ...` — see docs/SPEC.md), then `## Prediction Record` at the TOP — Verdict (lead with any stop/kill event; put the
      action NOW + next trigger first), time-bound Targets table, Entries & risk table with
      the **mandatory Stop**, Confidence, **Review date**, Kill criteria.
    - `## What Changed Since Last Report ({baseline date})` — the diff: price move, catalyst

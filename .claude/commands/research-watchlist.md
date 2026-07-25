@@ -10,13 +10,13 @@ Designed to run on a schedule (local cron, headless), and also on demand.
 - `/research-watchlist active` — only `Status: Active` rows (live calls; the nightly scope)
 - `/research-watchlist all` — explicit full sweep (the weekly scope)
 
-## The contract lives in the README
+## The contract lives in docs/SPEC.md
 
-`README.md (repo root)` is the source of truth: long-only/no-leverage
+`docs/SPEC.md` is the source of truth: long-only/no-leverage
 rules, the Prediction Record format, the technicals layer, and the calibration loop.
 **Read it and CLAUDE.md first, and never override the owner's documented preferences.**
 
-There is **no `min_conviction=56`** in this vault — conviction is the README's 1–5 /
+There is **no `min_conviction=56`** in this vault — conviction is the spec's 1–5 /
 high-med-low confidence scale. Use that; do not invent a numeric floor.
 
 ## Steps
@@ -53,9 +53,9 @@ high-med-low confidence scale. Use that; do not invent a numeric floor.
 ## Per-ticker agent brief (fill {TICKER}, {TYPE}, {ASSET_CLASS}, {CALIBRATION})
 
 > You are researching **{TICKER}** ({TYPE}) for the owner's watchlist sweep. Follow
-> `README.md (repo root)` exactly — long-primary (a losing bull case
+> `docs/SPEC.md` exactly — long-primary (a losing bull case
 > defaults to REDUCE/TRIM/WAIT/SKIP); you MAY add a secondary opt-in **short flag** only
-> when the README's exhaustion+premium setup is present, with its own hard stop and cover
+> when the spec's exhaustion+premium setup is present, with its own hard stop and cover
 > target. Decisive and time-bound, stop mandatory on every long or short.
 >
 > 1. **Technicals (cited by construction):** the venv is already set up. Run:
@@ -73,7 +73,7 @@ high-med-low confidence scale. Use that; do not invent a numeric floor.
 > 3. **Web check:** confirm price/catalyst freshness. Every numeric web claim needs a
 >    source URL or an `[UNVERIFIED]` tag (cite-or-fail). Technicals output is pre-cited.
 > 4. **Write** `data/Reports/{ASSET_CLASS}/{TICKER}/{YYYY-MM-DD}-watchlist-scan.md` with the
->    README's mandatory sections: the one-line Provenance header (v{N} / Supersedes / Trigger), then `## Prediction Record` at the TOP (Verdict, time-bound
+>    spec's mandatory sections: the one-line Provenance header (v{N} / Supersedes / Trigger), then `## Prediction Record` at the TOP (Verdict, time-bound
 >    Targets table, Entries & risk table with mandatory Stop, Confidence, Review date,
 >    Kill criteria) and a short `## Self-Critique Pass` at the end. Keep the body compact
 >    — this is a sweep, not a Tier 2 deep dive.

@@ -3,7 +3,7 @@
 
 The Scoreboard table in data/Reports/_meta/calibration.md is the compounding
 record of how past calls resolved. This module parses that table into typed rows
-and computes the rolling stats the README's monthly sweep calls for — per-bucket
+and computes the rolling stats the spec's (docs/SPEC.md) monthly sweep calls for — per-bucket
 hit rate vs implied p, the gap, the Brier score, hit rate by direction — so the
 arithmetic is a script, not agent prose (the repo's rule: agents interpret, never
 recompute). Same pattern as prediction_record.py: parse markdown, validate loudly.
@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 
 from prediction_record import _first_number, _table_rows
 
-# The README's canonical confidence -> probability map. The one source of truth.
+# The spec's canonical confidence -> probability map. The one source of truth.
 CONF_P = {"high": 0.7, "medium": 0.55, "low": 0.4}
 
 
@@ -154,7 +154,7 @@ def to_markdown(rows: list[ScoreRow]) -> str:
     if s["n"] == 0:
         return ("### Calibration — no scored calls yet\n\n"
                 "The Scoreboard in calibration.md has no rows; nothing to score. "
-                "Rows accrue as predictions mature (see the README calibration loop).")
+                "Rows accrue as predictions mature (see the docs/SPEC.md calibration loop).")
 
     lines = [
         f"### Calibration — {s['n']} scored call{'s' if s['n'] != 1 else ''} "
