@@ -26,7 +26,7 @@ market-research/
 
 Reports are split by asset class: **`data/Reports/Crypto/{TICKER}/`** and **`data/Reports/Equities/{TICKER}/`**. `_meta/` stays at the `data/Reports/` root (system-level, not per-asset). `data/Research/` and `data/Watchlist.md` are NOT split — they stay flat.
 
-**Critical separation:** `data/Research/` is the owner's belief and audit trail. `data/Reports/` is agent output — inputs the owner can cite or disagree with. Never mix. Never overwrite a Research/ file with agent content.
+**Critical separation:** `data/Research/` is the owner's belief and audit trail. `data/Reports/` is agent output — inputs the owner can cite or disagree with. Never mix. Never overwrite a Research/ file with agent content. One narrow exception (owner policy 2026-07-25): after a report validates, the session auto-appends a dated **one-line pointer** (version, verdict, report path) to the asset's Updates Log and commits the report — pointers only, never analysis; thesis content stays owner-only.
 
 ## File Naming
 
@@ -433,7 +433,7 @@ Defaults (the owner can override):
 ### A call resolves (target hit / invalidation printed / kill criterion)
 1. Update the matching Watchlist row Status (`Resolved` / `Invalidated`) — the levels stay as the record of the call
 2. Run /postmortem to score it into the calibration log
-3. Append a dated entry to data/Research/{TICKER}.md Updates Log if the thesis changed (ask first; never auto-edit)
+3. The session auto-appends a dated one-line score pointer to data/Research/{TICKER}.md Updates Log (owner policy 2026-07-25); any thesis-content entry beyond that still needs the owner (ask first)
 
 ### Update existing thesis
 - Always append to Updates Log with `### YYYY-MM-DD` header
@@ -443,8 +443,8 @@ Defaults (the owner can override):
 1. Triage tier (default Tier 2)
 2. For Tier 2/3: spawn orchestrator with calibration context, three workers run in parallel, synthesizer runs after
 3. Report saved to `data/Reports/{Crypto|Equities}/{TICKER}/`
-4. Summarize findings to the owner, ask whether to update data/Research/{TICKER}.md
-5. Do NOT auto-update the owner's thesis — that's his audit trail
+4. After validation: auto-append the dated one-line pointer to data/Research/{TICKER}.md Updates Log and commit the report (owner policy 2026-07-25), then summarize findings to the owner
+5. Thesis content in Research/ stays owner-only — never write analysis there; anything beyond the pointer line is ask-first
 
 ### Read patterns
 When the owner references an asset by ticker, default to:

@@ -34,7 +34,7 @@ available — same math, in-conversation.
 - `.claude/commands/` — `/research`, `/refresh`, `/postmortem`, `/research-watchlist`, `/report-view` (render a report .md as a private artifact or PDF on request; .md stays canonical)
 - `engine/` — Python compute layer; setup in `engine/README.md`
 - `data/Watchlist.md` — the calls table (source of truth for levels/status)
-- `data/Research/{TICKER}.md` — the owner's own thesis, append-only. NEVER auto-edit.
+- `data/Research/{TICKER}.md` — the owner's own thesis, append-only. Agent writes ONLY dated one-line report pointers to the Updates Log (owner policy 2026-07-25); thesis content is owner-only. Validated reports auto-commit, house-style message.
 - `data/Reports/{Crypto|Equities}/{TICKER}/` — agent-generated reports
 - `data/Reports/_meta/calibration.md` — active biases; inject into Tier 2/3 prompts
 - `docs/` — design references
