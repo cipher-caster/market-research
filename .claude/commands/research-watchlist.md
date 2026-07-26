@@ -64,9 +64,10 @@ high-med-low confidence scale. Use that; do not invent a numeric floor.
 >    python technicals.py {TICKER}{CRYPTO_FLAG}
 >    ```
 >    The snapshot self-validates: if it errors or returns empty, say so plainly and fall
->    back to cited web numbers — do NOT invent levels. Read the add-ladder and SMC
->    premium/discount; do not recompute. Premium zone = not a low-risk add; name the
->    discount rung instead.
+>    back to cited web numbers — do NOT invent levels. Read the add-ladder and the
+>    dealing range (location context only — zone does not gate adds; premium veto
+>    retired 2026-07-26); do not recompute. If price is extended above the nearest
+>    rung, say there is no low-risk add and name the rung.
 > 2. **Context:** read `data/Research/{TICKER}.md` (the owner's thesis — never edit it) and the most
 >    recent file in `data/Reports/{ASSET_CLASS}/{TICKER}/`. Counter-weight these documented
 >    biases: {CALIBRATION}
@@ -98,6 +99,7 @@ Write `data/Reports/_meta/Watchlist-Scan/{YYYY-MM-DD}.md`:
 - **Flags** — any ticker where the technicals layer errored/fell back, any
   `[UNVERIFIED]` numbers, any thesis that may be invalidated (kill criteria near).
 - Ranking logic: Active calls with a triggered/near kill-criterion rank first (action
-  needed), then highest-confidence long setups sitting in discount, then watching/no-op.
+  needed), then highest-confidence long setups at or near a confirmed rung reclaim,
+  then watching/no-op.
 
 Then give the owner the ranked table inline. End there — no auto-edits to thesis, levels, or config.

@@ -274,11 +274,17 @@ an add to entry price, a round number, or "a bit below current"; if price is ext
 far above the nearest rung, say so plainly (there may be no low-risk add near current
 price) rather than inventing one. This is the deterministic guard against eyeballed levels.
 
-**Rungs fire on reclaim, not on touch.** A rung (or planned entry level) is *armed* when
-price touches it, but the buy signal requires **confirmation: a daily close back above
-the rung with momentum turning (MACD histogram rising vs the prior bar)**. A touch that
+**Rungs fire on reclaim, not on touch.** A rung (or planned entry level) is *armed*
+when price touches it and **stays armed for 3 daily bars**; the buy signal requires
+**confirmation inside that window: a daily close back above the rung with momentum
+turning (MACD histogram rising vs the prior bar)**. The same-bar-only reading is
+retired — the 2017–2026 backtest found it fired 57 times in 9 years and tested
+negative; the 3-bar window is the tested form. A touch that
 keeps falling is distribution, not support — ZEC (2026-06) gapped through two rungs and
-the stop in six days; touch-based rungs would have averaged into that. Breakout adds
+the stop in six days; touch-based rungs would have averaged into that. Confirmation is
+**downside hygiene, not edge**: its measured value lives in downtrends (largely
+redundant with the regime gate) and it adds nothing inside an uptrend pullback — it
+stays because it costs a 1–3 day delay and guards the ZEC-class gap. Breakout adds
 already carry their own confirmation (daily close above the level on above-average
 volume). No confirmation, no add — report "rung armed, awaiting reclaim" instead.
 
@@ -303,6 +309,13 @@ the 90-bar high; **risk_on** = above 50-MA, golden cross, drawdown <10%; otherwi
 - **neutral** — rungs fire only with the reclaim confirmation above (which is mandatory
   anyway); no leverage on new adds.
 - **risk_on** — normal operation.
+
+Evidence note (2026-07-26): backtested 2017–2026 on BTC/ETH/SOL/ZEC with the gate
+computed on BTC as the class benchmark — the one rule with measurable teeth (risk_off
+90-day forward median −4.1% vs +5–9% otherwise; not-risk_off beat risk_off by +0.28R,
+90% CI [+0.08, +0.48]). The gate operates as a binary in the data (neutral ≈ risk_on);
+the three labels stay for the leverage/confirmation distinctions above. See
+`data/Reports/_meta/2026-07-26-rule-backtest.md`.
 
 Every Tier 2/3 report and every `/refresh` states the current regime in the Prediction
 Record. The level-watch sweep (below) prints it automatically.
@@ -361,25 +374,26 @@ unlock schedules (DefiLlama emissions = paid) and spot-ETF flow tables (Farside 
 scraping) have no free citable API. Unlocks and ETF flows stay web-research items with
 per-claim source URLs.
 
-### SMC execution sublayer — dealing range, premium/discount
+### SMC execution sublayer — dealing range (location context, not a gate)
 
 The snapshot also computes a **dealing range** (highest high / lowest low over a
 lookback, default 60 bars; tune with `--range-lookback`) and locates price within it:
 the **equilibrium** (50% mid), the **% of range** price sits at, and the **zone**
-(`premium` above the mid / `discount` below). This is the *WHERE/WHEN* layer on top of
-the add-ladder's *WHAT* — it answers "is this even a good place to be adding?"
+(`premium` above the mid / `discount` below). This is reported as **location
+context** — where price sits in its recent range — never as an entry gate.
 
-- **Premium (>50% of range):** a poor place to ADD — upper half of the range, where you
-  trim or wait, not chase. If the owner asks "should I add here" and zone is premium, the default
-  answer is **no, wait for a pullback into discount** (and name the add-ladder rung).
-- **Discount (<50%):** where long adds belong. An add-ladder rung that also sits in
-  discount is a higher-quality entry than one in premium. Long-side only.
+**The premium veto is retired (owner decision 2026-07-26).** The 2017–2026 backtest
+(`data/Reports/_meta/2026-07-26-rule-backtest.md`; rerun via `engine/backtest.py`)
+found the zone predicts nothing in its own domain: within golden posture and
+not-risk_off, an add at a confirmed discount rung matched simply adding on any golden
+day (−0.02R gap) with equal 90-day forward medians. Do not refuse an add because zone
+is premium; do not treat discount as a reason to add. Adds are governed by the regime
+gate, the structural add-ladder (never cost-anchored — that rule stands in full), and
+reclaim confirmation. Deep premium (≳85–90%) keeps its separate, untested role in the
+downside-flag criteria (Call Style) — unchanged by this study.
 
-A strong uptrend usually prints **premium** (it's near its highs by definition). That's
-the point — it's the honest signal that *now* is not a low-risk add, the exact failure
-mode (cost-anchored "add a bit below current") this layer exists to prevent. (Fib/OTE
-bands are intentionally not computed: in any uptrend they fall below the invalidation
-stop, so they're unreachable noise, not an entry.)
+(Fib/OTE bands are intentionally not computed: in any uptrend they fall below the
+invalidation stop, so they're unreachable noise, not an entry.)
 
 **Crypto symbols are explicit, never guessed.** Pass `--crypto` (or a `-USD` symbol)
 for any asset tagged `Type: Crypto` in Watchlist. Bare majors like `BTC`/`ETH` are

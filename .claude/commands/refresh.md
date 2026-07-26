@@ -72,8 +72,10 @@ command only wires up the inputs — it does not change the rules.
      secondary opt-in **short flag** when the exhaustion+premium setup is present (hard
      stop above invalidation + a defined cover target) — but long stays the default.
    - **Kill criteria:** walk each one from the baseline report; mark triggered / near / clear.
-   - **Add levels:** if price sits in premium / a no-trade air pocket, say there's no
-     low-risk add and name the discount rung instead — never a cost-anchored "a bit below."
+   - **Add levels:** adds come from the computed add-ladder (or a confirmed breakout) —
+     never a cost-anchored "a bit below." If price is extended above the nearest rung,
+     say there's no low-risk add and name the rung. Dealing-range zone is location
+     context only, not a gate (premium veto retired 2026-07-26, see docs/SPEC.md).
 
 5. **Write** `data/Reports/{Crypto|Equities}/{TICKER}/{YYYY-MM-DD}-status-refresh.md`:
    - Provenance header first line (`v{N} | Supersedes: {baseline file} | Trigger: ...` — see docs/SPEC.md), then `## Prediction Record` at the TOP — Verdict (lead with any stop/kill event; put the

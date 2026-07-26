@@ -112,12 +112,13 @@ def compute(ticker: str, df: pd.DataFrame, range_lookback: int = 60) -> dict:
                 "pct_below": round((lvl / px - 1) * 100, 2),
             })
 
-    # SMC execution sublayer: dealing-range premium/discount (long bias).
+    # SMC execution sublayer: dealing-range location (descriptive context only).
     # Draw the current dealing range as the highest high / lowest low over a
     # lookback window (default ~3 months daily); equilibrium is the 50% mid.
-    # "discount" (price below mid) is where a long looks to BUY; "premium" is
-    # where it trims / avoids adding. This is the WHERE/WHEN on top of the
-    # add-ladder's WHAT -- it answers "is this a good place to be adding at all?"
+    # Reported as location context, NOT an add gate -- the premium veto was
+    # retired 2026-07-26 (backtest: zone predicts nothing within uptrend +
+    # not-risk_off; see data/Reports/_meta/2026-07-26-rule-backtest.md). Adds
+    # are governed by the regime gate + add-ladder + reclaim confirmation.
     # (OTE/fib bands are deliberately omitted: in any uptrend they land below the
     # invalidation stop, so they're noise, not a reachable entry.)
     n = min(len(df), range_lookback)
@@ -192,7 +193,7 @@ def to_markdown(s: dict, source: str = "Yahoo Finance") -> str:
         lines.append(
             f"- **Dealing range ({dr['lookback_bars']}-bar):** {dr['range_low']} — "
             f"eq {dr['equilibrium']} — {dr['range_high']}  |  price at **{dr['pct_in_range']}%** "
-            f"of range → **{dr['zone']}** (discount = add zone, premium = don't chase)"
+            f"of range → **{dr['zone']}** (location context — zone does not gate adds)"
         )
     lines += [
         "",

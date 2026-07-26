@@ -22,6 +22,31 @@ Append-only, most recent first. Conf (p): high = 0.7, medium = 0.55, low = 0.4.
 
 ## Entries
 
+### 2026-07-26 — System-validation event: decision-rule backtest (no scored calls)
+
+Not a call resolution — the Scoreboard is unchanged (still empty). The decision rules
+themselves were backtested on 2017–2026 daily history (BTC/ETH/SOL/ZEC, Binance UTC
+klines, engine-parity verified, regime gated on the BTC benchmark per SPEC). Full
+study: `2026-07-26-rule-backtest.md` (this folder); rerun via `engine/backtest.py`.
+
+Outcomes applied to `docs/SPEC.md` (owner-approved 2026-07-26):
+
+- **Regime gate validated** — risk_off 90d forward median −4.1% vs +5–9% otherwise;
+  not-risk_off beat risk_off by +0.28R (90% CI [+0.08, +0.48]). The only rule with
+  measurable edge; operates as a binary (neutral ≈ risk_on). Unchanged.
+- **Premium veto retired** — dealing-range zone is location context, not an add gate.
+  Within its own domain (golden posture + not-risk_off) the zone predicted nothing:
+  SPEC add vs any golden day −0.02R, equal 90d forward medians.
+- **Reclaim confirmation kept as downside hygiene** — 3-bar arming window codified;
+  no measurable edge inside uptrend pullbacks, kept as knife protection (ZEC-class gap).
+
+Parked hypothesis (NOT a rule, third pass over the same data): death posture + premium
++ benchmark-not-risk_off (early recovery before the golden cross) was the best cell in
+the study (+0.48R). Awaits out-of-sample evidence.
+
+**Active biases:** none. (Bias lines require scored live calls; a backtest validates
+rules, not calls. The doctrine changes live in `docs/SPEC.md`, not here.)
+
 ### 2026-07-19 — Clean slate
 
 System reset with no prior research carried over. No matured predictions. No active biases yet — structural lessons from the previous iteration (regime gate, reclaim-confirmation rungs, alert-driven level watch) are already baked into the spec's rules, not carried as biases.
