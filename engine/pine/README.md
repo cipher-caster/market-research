@@ -90,6 +90,29 @@ source of truth; this overlay mirrors the decision layer in `docs/SPEC.md`
 | STOP breached (close basis) | Reduce/exit call per SPEC → `/refresh` + `/postmortem` |
 | Target hit | `/refresh` to resolve the call |
 
+## The strategy (`mr-system-strategy.pine`) — verification, not trading
+
+A `strategy()` port of the exact Layer B template from the backtest study, so
+TradingView's Strategy Tester can cross-check the Python numbers on its own
+data. Entry = golden posture + 3-bar-armed rung reclaim + gate open; stop =
+entry − 2·ATR; target = 2R; timeout 180 bars; one position at a time.
+
+- Run it on the **daily** chart of `BINANCE:BTCUSDT` / `ETHUSDT` / `SOLUSDT` /
+  `ZECUSDT` — the study's data source — then read the Strategy Tester tab.
+- Expect: a few dozen trades per asset over full history, win rate high-30s
+  to mid-40s %, expectancy ≈ +0.2R (≈ +0.2% equity per trade at 1% risk).
+  Long stop-streaks are normal at that win rate. No fees by default (matches
+  the study); add taker fees via Properties to stress it.
+- The two A/B toggles reproduce the study's findings on demand:
+  **"Apply regime gate" off vs on** shows the validated gap; **"Zone filter"
+  discount/premium vs off** shows the null behind the retired premium veto.
+- Same-bar stop+target ties: Python scored stop (worst case); TradingView's
+  emulator uses its own intrabar assumption, so its results can read
+  marginally better.
+
+This exists to verify the rules. It is not an auto-trader, and its modest
+expectancy is the honest number — the system's value is the calls workflow.
+
 ## Known limits
 
 - Last-bar values develop intraday; everything confirms at the daily UTC

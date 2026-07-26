@@ -1,0 +1,122 @@
+//@version=6
+strategy("MR System Strategy — Layer B verification (SPEC 2026-07-26)",
+     shorttitle = "MR Strategy",
+     overlay = true,
+     pyramiding = 0,
+     initial_capital = 100000,
+     process_orders_on_close = true,
+     commission_type = strategy.commission.percent,
+     commission_value = 0.0,
+     calc_on_every_tick = false)
+
+// =============================================================================
+// VERIFICATION TOOL, NOT A MONEY-PRINTER. This is the exact Layer B template
+// from engine/backtest.py / data/Reports/_meta/2026-07-26-rule-backtest.md,
+// ported so TradingView's Strategy Tester can cross-check the Python numbers:
+//
+//   entry  = golden posture + rung reclaim (3-bar armed, close back above the
+//            10-bar swing-low rung, MACD hist rising) + regime gate open
+//   stop   = entry - 2*ATR(14), fixed at entry
+//   target = entry + R multiple * risk (default 2R), fixed at entry
+//   exit   = first touch, or timeout after 180 bars; one position at a time
+//
+// Reference numbers from the study (pooled BTC/ETH/SOL/ZEC, 2017-2026, no
+// fees): a few dozen trades per asset, win rate high-30s to mid-40s %,
+// expectancy ~ +0.2R. With 1% risk per trade that is ~ +0.2% equity per trade.
+// Long stop-streaks are NORMAL at a ~40% win rate. The system's value is the
+// calls workflow; this strategy exists to verify the rules, not replace it.
+//
+// To reproduce the study: run on the DAILY chart of BINANCE:BTCUSDT /
+// ETHUSDT / SOLUSDT / ZECUSDT (the study's data source; UTC daily bars) with
+// defaults. Fees: study used none — add taker fees via Properties to stress.
+//
+// The A/B toggles reproduce the two headline findings:
+//   - "Apply regime gate" OFF vs ON  -> the validated gap (~+0.28R pooled)
+//   - "Zone filter" discount/premium -> the null (retired veto): neither
+//     restriction should improve expectancy vs "off"
+//
+// Known divergence: on a bar that touches both stop and target, the Python
+// study scored STOP (worst case); TradingView's broker emulator uses its own
+// intrabar path assumption, so its results can read marginally better.
+// SPEC-synced: 2026-07-26. Python engine is the source of truth.
+// =============================================================================
+
+// ---------------------------------------------------------------------- inputs
+grpG = "Rules"
+benchSym = input.symbol("BINANCE:BTCUSDT", "Regime benchmark", group = grpG,
+     tooltip = "Class benchmark per SPEC (BTC for crypto). BINANCE to match the study's data; the live overlay uses OKX.")
+useGate  = input.bool(true, "Apply regime gate (risk_off blocks entries)", group = grpG)
+zoneMode = input.string("off", "Zone filter (A/B only — study showed null)", group = grpG,
+     options = ["off", "discount only", "premium only"])
+
+grpT = "Trade template (Layer B)"
+riskPct = input.float(1.0, "Risk per trade (% of equity)", group = grpT, minval = 0.1, step = 0.1)
+rMult   = input.float(2.0, "Target (R multiple)",          group = grpT, minval = 0.5, step = 0.5)
+maxBars = input.int(180,   "Timeout (bars in trade)",      group = grpT, minval = 10)
+startAt = input.time(timestamp("17 Aug 2017 00:00 +0000"), "Start date", group = grpT)
+
+// ------------------------------------------------------------ regime (benchmark)
+// Mirror of engine/regime.py: risk_off = below 200-SMA OR >= 20% drawdown from
+// the 90-bar high; < 200 bars defaults neutral. Only the risk_off/not split
+// matters here (the gate operates as a binary per the study).
+f_regime() =>
+    ma50b  = ta.sma(close, 50)
+    ma200b = ta.sma(close, 200)
+    dd     = (close / ta.highest(high, 90) - 1) * 100
+    int reg = 0
+    if not na(ma200b)
+        if close < ma200b or dd <= -20.0
+            reg := -1
+        else if close > ma50b and ma50b > ma200b and dd > -10.0
+            reg := 1
+    reg
+
+benchReg = request.security(benchSym, "D", f_regime())
+gateOpen = not useGate or benchReg != -1
+
+// ------------------------------------------------------------------ asset state
+ma50   = ta.sma(close, 50)
+ma200  = ta.sma(close, 200)
+golden = ma50 > ma200
+[_, _, macdH] = ta.macd(close, 12, 26, 9)
+atr    = ta.atr(14)
+
+rung       = ta.lowest(low, 10)[1]
+touch      = low <= rung
+armed      = touch or touch[1] or touch[2]
+histRising = macdH > macdH[1]
+reclaim    = armed and close > rung and histRising
+
+rngHi  = ta.highest(high, 60)
+rngLo  = ta.lowest(low, 60)
+inDisc = close < (rngHi + rngLo) / 2
+zoneOk = zoneMode == "off" or (zoneMode == "discount only" ? inDisc : not inDisc)
+
+// ------------------------------------------------------------------------ entry
+entrySignal = golden and reclaim and gateOpen and zoneOk and time >= startAt and
+     strategy.position_size == 0 and not na(atr)
+
+var float stopP    = na
+var float tgtP     = na
+var int   entryBar = na
+
+if entrySignal
+    stopP := close - 2 * atr
+    riskPerUnit = close - stopP
+    if riskPerUnit > 0
+        tgtP := close + rMult * riskPerUnit
+        entryBar := bar_index
+        qty = strategy.equity * riskPct / 100 / riskPerUnit
+        strategy.entry("L", strategy.long, qty = qty)
+
+// ------------------------------------------------------------------------ exits
+if strategy.position_size > 0
+    strategy.exit("X", "L", stop = stopP, limit = tgtP)
+    if bar_index - entryBar >= maxBars
+        strategy.close("L", comment = "timeout")
+
+// ------------------------------------------------------------------------ plots
+plot(strategy.position_size > 0 ? stopP : na, "Stop",   color = color.new(color.red, 20),  style = plot.style_linebr)
+plot(strategy.position_size > 0 ? tgtP : na,  "Target", color = color.new(color.blue, 30), style = plot.style_linebr)
+plot(golden ? rung : na, "Rung", color = color.new(color.teal, 40), style = plot.style_linebr)
+bgcolor(benchReg == -1 ? color.new(color.red, 94) : na, title = "risk_off tint")
