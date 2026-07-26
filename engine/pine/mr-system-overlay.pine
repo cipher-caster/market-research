@@ -1,0 +1,171 @@
+//@version=6
+indicator("MR System Overlay — SPEC 2026-07-26", shorttitle = "MR System", overlay = true)
+
+// =============================================================================
+// TradingView port of the market-research system's decision layer.
+// The Python engine (engine/) is the SOURCE OF TRUTH; this overlay is a mirror
+// and must be re-synced by hand when docs/SPEC.md changes. SPEC-synced: 2026-07-26.
+//
+// What it encodes (and the evidence grade behind each piece):
+//   1. REGIME GATE on the class benchmark (BTC daily), never the charted asset.
+//      The one rule with backtested edge (risk_off 90d fwd median -4.1%,
+//      +0.28R gap; data/Reports/_meta/2026-07-26-rule-backtest.md).
+//   2. ADD-LADDER RUNG (10-bar swing low, golden posture only) with the tested
+//      3-bar-armed reclaim confirmation: close back above the rung with MACD
+//      histogram rising. Confirmation is downside hygiene, not edge.
+//   3. DEALING RANGE as LOCATION CONTEXT ONLY -- the premium veto was retired
+//      2026-07-26; zone never gates an add here and never will.
+//   4. Optional downside-context flag (RSI>=72 + hist falling + >=85% of range)
+//      -- a checklist prompt for the SPEC's Call Style criteria, NOT a signal.
+//
+// Use on the DAILY chart of the venue symbols the engine reads (OKX primary,
+// Bybit/Binance fallback) so values match engine output. Indicator math matches
+// pandas_ta defaults: SMA posture, Wilder RSI(14), RMA ATR(14), EMA MACD(12,26,9).
+// Set alerts to "Once per bar close" -- intrabar values are developing, and the
+// benchmark regime confirms at the daily close.
+// A marker here means "run /refresh on that ticker", never "trade mechanically".
+// =============================================================================
+
+// ---------------------------------------------------------------------- inputs
+grpG = "Regime gate (class benchmark)"
+benchSym = input.symbol("OKX:BTCUSDT", "Benchmark symbol", group = grpG,
+     tooltip = "The gate is computed on the CLASS BENCHMARK (BTC for crypto, per SPEC), not on the charted asset.")
+tintBg   = input.bool(true, "Tint background by regime", group = grpG)
+
+grpC = "Watchlist call levels (0 = off; copy from data/Watchlist.md)"
+entryLo = input.float(0.0, "Entry zone low",      group = grpC, minval = 0)
+entryHi = input.float(0.0, "Entry zone high",     group = grpC, minval = 0)
+stopLvl = input.float(0.0, "Stop (invalidation)", group = grpC, minval = 0)
+tgtLvl  = input.float(0.0, "Target",              group = grpC, minval = 0)
+
+grpD = "Display"
+showMAs  = input.bool(true, "20/50/200 SMAs", group = grpD)
+showRng  = input.bool(true, "Dealing range (location context only)", group = grpD)
+showAtr  = input.bool(true, "2*ATR stop suggestion", group = grpD)
+showFlag = input.bool(true, "Downside-context flag (checklist prompt, not a signal)", group = grpD)
+
+// ------------------------------------------------------------ regime (benchmark)
+// Mirror of engine/regime.py compute_regime(): risk_off = below 200-SMA OR
+// drawdown from 90-bar high >= 20%; risk_on = above 50-SMA + golden + dd < 10%;
+// else neutral; < 200 bars of history defaults neutral.
+f_regime() =>
+    ma50b  = ta.sma(close, 50)
+    ma200b = ta.sma(close, 200)
+    dd     = (close / ta.highest(high, 90) - 1) * 100
+    int reg = 0
+    if not na(ma200b)
+        if close < ma200b or dd <= -20.0
+            reg := -1
+        else if close > ma50b and ma50b > ma200b and dd > -10.0
+            reg := 1
+    reg
+
+benchReg = request.security(benchSym, "D", f_regime())
+gateOpen = benchReg != -1
+
+// ------------------------------------------------------------------ asset state
+ma20   = ta.sma(close, 20)
+ma50   = ta.sma(close, 50)
+ma200  = ta.sma(close, 200)
+golden = ma50 > ma200
+rsi    = ta.rsi(close, 14)
+[macdL, macdS, macdH] = ta.macd(close, 12, 26, 9)
+atr    = ta.atr(14)
+
+// Rung = the PRIOR bar's 10-bar swing low (today cannot define the level it is
+// reclaiming). A touched rung stays armed 3 daily bars (the tested form);
+// confirmation = daily close back above the rung with MACD histogram rising.
+rung       = ta.lowest(low, 10)[1]
+touch      = low <= rung
+armed      = touch or touch[1] or touch[2]
+histRising = macdH > macdH[1]
+reclaim    = armed and close > rung and histRising
+
+addSignal    = golden and reclaim and gateOpen      // the SPEC add
+gatedReclaim = golden and reclaim and not gateOpen  // armed+confirmed, but risk_off
+armedOnly    = golden and armed and not reclaim     // "rung armed, awaiting reclaim"
+
+// Dealing range: location context only (premium veto retired 2026-07-26).
+rngHi   = ta.highest(high, 60)
+rngLo   = ta.lowest(low, 60)
+rngEq   = (rngHi + rngLo) / 2
+pctRng  = (close - rngLo) / (rngHi - rngLo) * 100
+zoneTxt = close > rngEq ? "premium" : "discount"
+
+// Downside-context flag: a prompt to walk the SPEC Call Style checklist (it
+// cannot see catalysts or structural bids, so it is never a short signal).
+dnFlag = showFlag and rsi >= 72 and macdH < macdH[1] and pctRng >= 85
+
+// ------------------------------------------------------------------------ plots
+plot(showMAs ? ma20 : na,  "20-SMA",  color = color.new(color.gray, 65))
+plot(showMAs ? ma50 : na,  "50-SMA",  color = color.new(color.orange, 35))
+plot(showMAs ? ma200 : na, "200-SMA", color = color.new(color.blue, 25), linewidth = 2)
+
+plot(golden ? rung : na, "Add rung (10-bar swing low)", style = plot.style_linebr,
+     color = armed ? color.new(color.orange, 0) : color.new(color.teal, 30))
+
+plot(showRng ? rngHi : na, "Range high",  color = color.new(color.gray, 80))
+plot(showRng ? rngLo : na, "Range low",   color = color.new(color.gray, 80))
+plot(showRng ? rngEq : na, "Equilibrium", color = color.new(color.gray, 60))
+
+plot(showAtr ? close - 2 * atr : na, "2*ATR stop suggestion",
+     color = color.new(color.red, 70))
+
+pEL = plot(entryLo > 0 ? entryLo : na, "Entry low",  color = color.new(color.green, 40), trackprice = true, offset = -9999)
+pEH = plot(entryHi > 0 ? entryHi : na, "Entry high", color = color.new(color.green, 40), trackprice = true, offset = -9999)
+fill(pEL, pEH, color = color.new(color.green, 92), title = "Entry zone")
+plot(stopLvl > 0 ? stopLvl : na, "Stop",   color = color.new(color.red, 20),  trackprice = true, offset = -9999, linewidth = 2)
+plot(tgtLvl > 0 ? tgtLvl : na,   "Target", color = color.new(color.blue, 30), trackprice = true, offset = -9999)
+
+plotshape(addSignal,    "ADD: reclaim confirmed, gate open", shape.triangleup,   location.belowbar, color.new(color.teal, 0),   size = size.small, text = "ADD")
+plotshape(gatedReclaim, "Reclaim confirmed but GATED",       shape.triangleup,   location.belowbar, color.new(color.orange, 0), size = size.tiny,  text = "GATED")
+plotshape(armedOnly,    "Rung armed, awaiting reclaim",      shape.circle,       location.belowbar, color.new(color.gray, 30),  size = size.tiny)
+plotshape(dnFlag,       "Downside checklist prompt",         shape.triangledown, location.abovebar, color.new(color.maroon, 0), size = size.tiny,  text = "CHK")
+
+bgcolor(tintBg ? (benchReg == -1 ? color.new(color.red, 94) : benchReg == 1 ? color.new(color.green, 96) : na) : na,
+     title = "Regime tint")
+
+// ------------------------------------------------------------------ status table
+var table t = table.new(position.top_right, 2, 12, border_width = 1,
+     border_color = color.new(color.gray, 70), bgcolor = color.new(color.black, 20))
+
+f_row(int r, string k, string v, color vc) =>
+    table.cell(t, 0, r, k, text_color = color.new(color.gray, 20), text_size = size.small, text_halign = text.align_left)
+    table.cell(t, 1, r, v, text_color = vc, text_size = size.small, text_halign = text.align_right)
+
+if barstate.islast
+    regTxt  = benchReg == -1 ? "RISK_OFF" : benchReg == 1 ? "RISK_ON" : "NEUTRAL"
+    regCol  = benchReg == -1 ? color.red : benchReg == 1 ? color.green : color.yellow
+    gateTxt = benchReg == -1 ? "adds SUSPENDED; stops still execute" :
+              benchReg == 1  ? "normal operation" : "reclaim-confirm only"
+    rungTxt = addSignal ? "reclaim CONFIRMED — gate open" :
+              gatedReclaim ? "confirmed but GATED (risk_off)" :
+              armedOnly ? "ARMED — awaiting reclaim" :
+              golden ? "clear (" + str.tostring(rung, format.mintick) + ")" : "n/a (no uptrend ladder)"
+    f_row(0, "Regime (benchmark)", regTxt, regCol)
+    f_row(1, "Gate", gateTxt, color.new(color.gray, 10))
+    f_row(2, "Posture", golden ? "golden (uptrend)" : ma50 < ma200 ? "death (downtrend)" : "neutral",
+         golden ? color.green : color.new(color.gray, 10))
+    f_row(3, "Range location (context)", zoneTxt + " — " + str.tostring(pctRng, "#.0") + "%", color.new(color.gray, 10))
+    f_row(4, "RSI(14)", str.tostring(rsi, "#.0"), rsi >= 72 ? color.orange : color.new(color.gray, 10))
+    f_row(5, "MACD hist", (histRising ? "rising " : "falling ") + str.tostring(macdH, format.mintick),
+         histRising ? color.green : color.orange)
+    f_row(6, "Rung", rungTxt, addSignal ? color.teal : gatedReclaim or armedOnly ? color.orange : color.new(color.gray, 10))
+    f_row(7, "2*ATR stop suggestion", str.tostring(close - 2 * atr, format.mintick), color.new(color.gray, 10))
+    f_row(8, "Entry zone", entryHi > 0 ? str.tostring(entryLo, format.mintick) + "-" + str.tostring(entryHi, format.mintick)
+         + " (" + str.tostring((entryHi / close - 1) * 100, "#.0") + "%)" : "not set", color.new(color.gray, 10))
+    f_row(9, "Stop / Target", (stopLvl > 0 ? str.tostring((stopLvl / close - 1) * 100, "#.0") + "%" : "-") + " / "
+         + (tgtLvl > 0 ? "+" + str.tostring((tgtLvl / close - 1) * 100, "#.0") + "%" : "-"), color.new(color.gray, 10))
+    if timeframe.period != "D"
+        f_row(10, "WARNING", "USE THE DAILY CHART — system is daily-bar based", color.red)
+
+// ------------------------------------------------------------------------ alerts
+// Set alerts to "Once per bar close". A firing alert means "run /refresh on
+// this ticker", never "trade mechanically".
+inEntry = entryHi > 0 and close >= entryLo and close <= entryHi
+alertcondition(addSignal,                                  "MR: ADD — rung reclaim confirmed, gate open", "MR System: rung reclaim confirmed with the regime gate open — run /refresh before acting.")
+alertcondition(gatedReclaim,                               "MR: reclaim confirmed but GATED (risk_off)",  "MR System: rung reclaim confirmed but benchmark is risk_off — rung noted as armed, never fired.")
+alertcondition(benchReg != benchReg[1],                    "MR: benchmark regime changed",                "MR System: benchmark regime changed — re-check the gate on every open call.")
+alertcondition(inEntry and not inEntry[1],                 "MR: price entered the entry zone",            "MR System: price entered the Watchlist entry zone — run /refresh.")
+alertcondition(stopLvl > 0 and ta.crossunder(close, stopLvl), "MR: STOP breached (close basis)",          "MR System: daily close below the invalidation level — reduce/exit call per SPEC; run /refresh and /postmortem.")
+alertcondition(tgtLvl > 0 and ta.crossover(close, tgtLvl), "MR: target hit",                              "MR System: target printed — run /refresh to resolve the call.")
