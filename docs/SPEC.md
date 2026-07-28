@@ -250,6 +250,7 @@ cd ~/Documents/projects/market-research/engine
 python technicals.py MU            # stock
 python technicals.py BTC --crypto  # crypto (or pass BTC-USD directly)
 python exchange_ohlcv.py BTC       # raw exchange OHLCV (OKX/Bybit/Binance)
+python exchange_ohlcv.py ZEC --last 5   # last 5 dated daily OHLC bars (close-basis tests)
 python technicals.py MU --json     # machine-readable
 ```
 
@@ -258,13 +259,25 @@ The CLI, the cron sweep, and the MCP tools all share one routed data path
 and source stamps agree by construction — the cron sweep's regime line names the real venue
 (e.g. `BTC-USD via OKX`).
 
-The snapshot reports: price, 20/50/200-MA posture (golden/death + % vs each), RSI(14),
+The snapshot reports: price, the **last completed daily close** (see below), 20/50/200-MA
+posture (golden/death + % vs each), RSI(14),
 MACD(12,26,9), ATR(14) with a 2·ATR long-stop suggestion, 10/20/50-bar support &
 resistance, volume vs 20-day average, and — when the asset is in a golden-cross uptrend
 — a **structural pullback add-ladder** (near/mid/deep rungs from the 10-bar swing low,
 20-MA, and 50-MA, each with % below price). It also computes the **SMC dealing range**
 (premium/discount — see below). The worker reads these and explains what they
 mean — it does not recompute them.
+
+**Close basis vs live price — read the right bar.** The final bar of a daily frame is
+still *forming* (crypto trades 24/7; a stock bar is partial until the bell), so the
+snapshot's `price` is a live print, not a close. Every close-basis test in this spec —
+the reclaim confirmation, a breakout add, and any "daily close below X" kill criterion —
+resolves on the **last completed daily close**, which the snapshot now reports on its own
+line with same-bar distances to the 20/50-MA. Never settle a close-basis test against the
+live price: it fires a kill a day early or misses one a day late. For the underlying
+bars, `python exchange_ohlcv.py {TICKER} --last N` prints the last N dated daily OHLC rows
+(cited, same routed data path) — use it instead of reading candles off the web, where a
+summarizer can silently mangle the dates.
 
 **Add levels in an uptrend come from the add-ladder, never from cost basis.** When the
 asset is trending up and the question is "where's the next buy / where do I add", the
@@ -334,6 +347,17 @@ python check_levels.py --quiet    # prints only when something triggered (cron m
 Run it daily (scheduled) and whenever the owner asks "where are we". A trigger means **run
 `/refresh` on that ticker** — it is never a mechanical trade signal. This exists because
 levels get breached *between* scheduled reports (ZEC's stop was found 2% late).
+
+**Trend-kill line (50-MA).** The Watchlist stores static numbers, but the most common kill
+criterion in this system — "a daily close below the 50-MA" — is a *moving* line no static
+level can express, so the sweep computes it per Active row and reports two transitions:
+`TREND KILL LINE IN PLAY` (the last completed close held the line and price is now under
+it — tonight's close decides) and `TREND KILL PRINTED` (a close crossed below, scanned
+back over the stop lookback so a cross is not missed when the machine was off). Each close
+is judged against the MA **as of its own bar**; a call that has simply traded below the
+line for weeks stays silent, because that is already in the standing verdict. The sweep's
+`All calls` table carries the 50-MA as a column for standing context. Added 2026-07-28
+after ZEC's kill line came into play with nothing in the sweep able to see it.
 
 **Standing schedule:** an OS cron job (`crontab -l` to inspect) runs the engine's
 `cron_sweep.sh` at 08:17 and 20:17 local and overwrites

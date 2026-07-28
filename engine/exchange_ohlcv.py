@@ -109,6 +109,9 @@ def main() -> None:
     p.add_argument("ticker", help="e.g. BTC, HYPE, ZEC")
     p.add_argument("--period", default="1y", help="1mo,3mo,6mo,1y,2y,5y,max (default 1y)")
     p.add_argument("--stdout", action="store_true", help="print CSV instead of a summary")
+    p.add_argument("--last", type=int, metavar="N",
+                   help="print the last N dated daily bars (OHLC) -- use this to read a "
+                        "prior daily CLOSE for a close-basis stop/kill test")
     args = p.parse_args()
 
     df, src = fetch_crypto(args.ticker, args.period)
@@ -116,6 +119,14 @@ def main() -> None:
         sys.exit(f"No exchange data for '{args.ticker}' on OKX/Bybit/Binance.")
     if args.stdout:
         print(df.to_csv())
+        return
+    if args.last:
+        tail = df.tail(args.last)
+        print(f"{base_ticker(args.ticker)} via {src} — last {len(tail)} daily bars (UTC; "
+              f"the final row is today's forming bar):")
+        for d, r in tail.iterrows():
+            print(f"  {d.date()}  O {r['Open']:.4f}  H {r['High']:.4f}  "
+                  f"L {r['Low']:.4f}  C {r['Close']:.4f}")
         return
     last = df.iloc[-1]
     print(f"{base_ticker(args.ticker)} via {src}: {len(df)} daily bars, "

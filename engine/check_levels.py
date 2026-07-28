@@ -8,6 +8,13 @@ the rows where a defined level has triggered (or is within 3%):
   STOP BREACHED INTRA-PERIOD    a recent daily low pierced the stop, price recovered
   IN ENTRY ZONE                 price inside/below the entry range
   TARGET HIT / TARGET NEAR      price at/over the target
+  TREND KILL LINE IN PLAY       last close held the 50-MA, price is now under it
+  TREND KILL PRINTED            a daily close crossed below the 50-MA
+
+The trend-kill checks exist because the Watchlist's levels are static numbers
+while the most common kill criterion in this system ("a daily close below the
+50-MA") is a MOVING line no static level can express -- ZEC's kill line came
+into play on 2026-07-28 with nothing in the sweep able to see it.
 
 Also prints the market regime (regime.py) at the top, because a rung touched
 during a market-wide crash is not the same signal as one touched in a calm
@@ -26,6 +33,8 @@ Exit code: 0 = ran clean (triggers or not), 1 = error. A trigger means "run
 import argparse
 import re
 
+import pandas as pd
+
 from config import WATCHLIST
 from fetch_ohlcv import fetch_routed
 from regime import GATE, compute_regime
@@ -34,6 +43,8 @@ NEAR_PCT = 3.0  # "near" = within 3% of the level
 STOP_LOOKBACK = 5  # bars to scan for a pierced stop: the sweep runs twice daily
                    # but the machine can be off for days, so a stop that gapped
                    # through intraday and recovered must still be caught (see ZEC)
+TREND_MA = 50  # the moving line most kill criteria key off ("daily close below the 50-MA")
+HISTORY = "6mo"  # enough bars for the 50-MA with margin; also covers STOP_LOOKBACK
 
 
 def parse_number(cell: str):
@@ -75,16 +86,59 @@ def parse_watchlist(text: str) -> list[dict]:
 
 
 def live_price(row: dict):
-    """(close, low) for a row's symbol, or None on a data error.
+    """(close, low, df) for a row's symbol, or None on a data error.
 
     Routes by the row's Type: crypto -> exchange, stock -> Yahoo. low is the min
     Low over the last STOP_LOOKBACK bars, not just the latest, so a stop gapped
-    through on a day the machine was off is not missed.
+    through on a day the machine was off is not missed. The frame comes back too,
+    so the trend-line check reuses it instead of refetching.
     """
-    df, _ = fetch_routed(row["ticker"], "1mo", crypto=row["type"].lower() == "crypto")
+    df, _ = fetch_routed(row["ticker"], HISTORY, crypto=row["type"].lower() == "crypto")
     if df.empty:
         return None
-    return float(df["Close"].iloc[-1]), float(df["Low"].iloc[-STOP_LOOKBACK:].min())
+    return float(df["Close"].iloc[-1]), float(df["Low"].iloc[-STOP_LOOKBACK:].min()), df
+
+
+def trend_line(df) -> dict | None:
+    """50-MA kill-line state, or None if history is too short to compute it.
+
+    Kill criteria read on the CLOSE, so the live price crossing the line is not
+    the event -- the daily close is. The final bar of a daily frame is still
+    forming, so "last close" is the bar before it. Two transitions are worth an
+    alert; a call that has simply been below the line for weeks is not one, and
+    stays silent (it is already priced into the standing verdict).
+    """
+    close = df["Close"]
+    if len(close) < TREND_MA + 2:
+        return None
+    ma = close.rolling(TREND_MA).mean()
+    live, ma_now = float(close.iloc[-1]), float(ma.iloc[-1])
+    last_close, last_ma = float(close.iloc[-2]), float(ma.iloc[-2])
+    state: dict[str, float | str | None] = {
+        "ma": ma_now, "last_close": last_close, "alert": None,
+    }
+
+    # A break that already printed. Scan back over the lookback rather than only
+    # the last bar: the machine can be off for days and the cross must still surface.
+    for i in range(-2, -2 - STOP_LOOKBACK, -1):
+        if i - 1 < -len(close) or pd.isna(ma.iloc[i - 1]):
+            break
+        c, m, pc, pm = (float(close.iloc[i]), float(ma.iloc[i]),
+                        float(close.iloc[i - 1]), float(ma.iloc[i - 1]))
+        if c < m and pc >= pm:
+            state["alert"] = (f"TREND KILL PRINTED — {df.index[i].date()} close {c:.2f} "
+                              f"crossed below the {TREND_MA}-MA {m:.2f}")
+            return state
+
+    # Each close is judged against the MA as of its OWN bar: the line moves
+    # overnight, and testing yesterday's close against today's MA suppresses the
+    # alert whenever the MA rises past a close that actually held it (caught on
+    # SOL 2026-07-28, which held by 0.03 and would have gone silent).
+    if last_close >= last_ma and live < ma_now:
+        state["alert"] = (f"TREND KILL LINE IN PLAY — price {live:.2f} is under the "
+                          f"{TREND_MA}-MA {ma_now:.2f}; last close {last_close:.2f} held it "
+                          f"(vs {last_ma:.2f} then), so tonight's close decides")
+    return state
 
 
 def check_row(row: dict, px: float, lo: float) -> list[str] | None:
@@ -142,20 +196,24 @@ def main() -> None:
     has_crypto = any(r["type"].lower() == "crypto" for r in rows)
     has_stock = any(r["type"].lower() == "stock" for r in rows)
 
-    triggers, no_levels, table = [], [], []
+    triggers, no_levels = [], []
+    table: list[tuple[dict, float | None, dict | None]] = []
     for row in rows:
         pxlo = live_price(row)
         if pxlo is None:
             triggers.append(f"**{row['ticker']}** ({row['status']}): DATA ERROR — no price data")
-            table.append((row, None))
+            table.append((row, None, None))
             continue
-        px, lo = pxlo
-        table.append((row, px))
+        px, lo, df = pxlo
+        trend = trend_line(df) if row["status"].lower() == "active" else None
+        table.append((row, px, trend))
         fired = check_row(row, px, lo)
         if fired is None:
             no_levels.append(f"{row['ticker']} ({row['status']})")
         else:
             triggers += [f"**{row['ticker']}** ({row['status']}): {t}" for t in fired]
+        if trend and trend["alert"]:
+            triggers.append(f"**{row['ticker']}** ({row['status']}): {trend['alert']}")
 
     if args.quiet and not triggers:
         return
@@ -190,15 +248,16 @@ def main() -> None:
         return f"{txt} ({(v / px - 1) * 100:+.1f}%)"
 
     lines += ["", "**All calls:**", "",
-              "| Ticker | Call | Status | Price | Entry | Invalidation | Target |",
-              "|---|---|---|---|---|---|---|"]
-    for row, px in table:
+              f"| Ticker | Call | Status | Price | Entry | Invalidation | Target | {TREND_MA}-MA |",
+              "|---|---|---|---|---|---|---|---|"]
+    for row, px, trend in table:
         lines.append(
             f"| {row['ticker']} | {row['call'] or '—'} | {row['status']} | "
             f"{px:g} | {lvl(px, row['entry'])} | {lvl(px, row['stop'])} | "
-            f"{lvl(px, row['target'], hi=True)} |"
+            f"{lvl(px, row['target'], hi=True)} | {lvl(px, trend['ma']) if trend else '—'} |"
             if px is not None else
-            f"| {row['ticker']} | {row['call'] or '—'} | {row['status']} | DATA ERROR | — | — | — |")
+            f"| {row['ticker']} | {row['call'] or '—'} | {row['status']} | "
+            f"DATA ERROR | — | — | — | — |")
 
     print("\n".join(lines))
 

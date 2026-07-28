@@ -1,5 +1,7 @@
 """Pure-function tests: watchlist parsing and level parsing (no fixtures, no network)."""
-from check_levels import check_row, parse_number, parse_watchlist
+import pandas as pd
+
+from check_levels import TREND_MA, check_row, parse_number, parse_watchlist, trend_line
 
 SAMPLE = """# Watchlist
 
@@ -94,3 +96,46 @@ def test_check_row_target_active_only():
     r = _row(target=200.0)
     assert any("TARGET HIT" in t for t in fired_of(check_row(r, px=201.0, lo=200.0)))
     assert check_row(_row(target=200.0, status="Invalidated"), px=201.0, lo=200.0) == []
+
+
+def _frame(closes):
+    """Daily frame from a close series; the LAST bar is the forming (live) one."""
+    idx = pd.date_range("2026-01-01", periods=len(closes), freq="D")
+    return pd.DataFrame({"Close": [float(c) for c in closes]}, index=idx)
+
+
+def test_trend_line_needs_history():
+    assert trend_line(_frame([100] * (TREND_MA + 1))) is None
+    assert trend_line(_frame([100] * (TREND_MA + 2))) is not None
+
+
+def test_trend_line_quiet_when_below_for_weeks():
+    """A call that has been under its 50-MA for weeks is already in the verdict --
+    re-alerting every sweep would be noise (the HYPE case)."""
+    state = trend_line(_frame([100] * 20 + [80] * 40))
+    assert state is not None and state["alert"] is None
+
+
+def test_trend_line_in_play_when_close_held_but_price_slipped():
+    state = trend_line(_frame([100] * 59 + [95]))
+    assert state is not None and "TREND KILL LINE IN PLAY" in state["alert"]
+
+
+def test_trend_line_in_play_survives_an_overnight_ma_rise():
+    """Regression (SOL, 2026-07-28): the MA rose past a close that had held it.
+    Judging that close against TODAY's MA suppressed a live kill-line alert, so
+    each close must be judged against the MA as of its own bar."""
+    state = trend_line(_frame([0] * 10 + [102] * 48 + [100, 95]))
+    assert state is not None
+    assert state["last_close"] < state["ma"]  # the shape that hid the alert
+    assert "TREND KILL LINE IN PLAY" in state["alert"]
+
+
+def test_trend_line_printed_cross():
+    state = trend_line(_frame([100] * 58 + [95, 95]))
+    assert state is not None and "TREND KILL PRINTED" in state["alert"]
+
+
+def test_trend_line_silent_in_a_clean_uptrend():
+    state = trend_line(_frame(list(range(50, 110))))
+    assert state is not None and state["alert"] is None

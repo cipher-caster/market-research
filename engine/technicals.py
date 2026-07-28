@@ -112,6 +112,28 @@ def compute(ticker: str, df: pd.DataFrame, range_lookback: int = 60) -> dict:
                 "pct_below": round((lvl / px - 1) * 100, 2),
             })
 
+    # Close-basis reference bar. The last row of a daily frame is the *forming*
+    # bar (crypto trades 24/7, a stock bar is partial until the bell), so `price`
+    # above is a live print. Kill criteria in this system read on the CLOSE
+    # ("daily close below the 50-MA") -- that test belongs to this bar, not that
+    # one, and reading the wrong bar fires a kill a day early or misses it a day
+    # late. Distances are same-bar (each close vs the MA as of its own bar).
+    prev_close = None
+    if len(df) >= 2:
+        ma20_series, ma50_series = close.rolling(20).mean(), close.rolling(50).mean()
+        pc = float(close.iloc[-2])
+
+        def _pct_vs(series):
+            m = series.iloc[-2]
+            return round((pc / float(m) - 1) * 100, 2) if pd.notna(m) else None
+
+        prev_close = {
+            "date": str(df.index[-2].date()),
+            "close": round(pc, 4),
+            "pct_vs_ma20": _pct_vs(ma20_series),
+            "pct_vs_ma50": _pct_vs(ma50_series),
+        }
+
     # SMC execution sublayer: dealing-range location (descriptive context only).
     # Draw the current dealing range as the highest high / lowest low over a
     # lookback window (default ~3 months daily); equilibrium is the 50% mid.
@@ -142,6 +164,7 @@ def compute(ticker: str, df: pd.DataFrame, range_lookback: int = 60) -> dict:
         "ticker": ticker,
         "as_of": str(df.index[-1].date()),
         "price": round(px, 4),
+        "prev_close": prev_close,
         "ma20": round(ma20, 4),
         "ma50": round(ma50, 4),
         "ma200": round(ma200, 4) if ma200 is not None else None,
@@ -182,6 +205,18 @@ def to_markdown(s: dict, source: str = "Yahoo Finance") -> str:
         f"- **Support / Resistance:** 10-bar low {s['support_10']}  |  20-bar {s['support_20']} / {s['resistance_20']}  |  50-bar {s['support_50']} / {s['resistance_50']}",
         f"- **Volume:** {s['volume']:.0f} ({s['volume_vs_avg20_pct']:+}% vs 20-avg)",
     ]
+    p = s.get("prev_close")
+    if p:
+        vs = "  |  ".join(
+            f"vs {label} {p[key]:+}%"
+            for label, key in (("20-MA", "pct_vs_ma20"), ("50-MA", "pct_vs_ma50"))
+            if p[key] is not None
+        )
+        lines.append(
+            f"- **Last completed daily close ({p['date']}):** {p['close']}"
+            + (f"  |  {vs}" if vs else "")
+            + "  — close-basis kill tests read this bar, not the live price above"
+        )
     if s.get("add_ladder"):
         rungs = "  |  ".join(
             f"{r['tier']} {r['level']} ({r['pct_below']:+}%, {r['label']})"

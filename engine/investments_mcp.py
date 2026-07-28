@@ -89,7 +89,8 @@ def funding_oi(ticker: str) -> str:
 def watchlist_levels() -> str:
     """Level-watch sweep: parse the calls table in Watchlist.md, pull live prices,
     report only triggered levels (stop breached/near, entry/re-entry zone, target
-    hit/near) with the market regime on top. A trigger means 'run /refresh', not
+    hit/near) with the market regime on top, plus the 50-MA trend-kill line
+    (in play tonight / already printed). A trigger means 'run /refresh', not
     'trade'. Reuses the same sweep the cron job runs."""
     buf = io.StringIO()
     with redirect_stdout(buf):

@@ -74,7 +74,8 @@ new machine.
 .venv/bin/python technicals.py BTC --crypto    # crypto
 .venv/bin/python regime.py                     # benchmark regime
 .venv/bin/python funding.py HYPE               # funding + OI
-.venv/bin/python check_levels.py               # level-watch sweep
+.venv/bin/python check_levels.py               # level-watch sweep (+ 50-MA trend-kill line)
+.venv/bin/python exchange_ohlcv.py ZEC --last 5  # dated daily OHLC bars (close-basis tests)
 .venv/bin/python defillama.py hyperliquid      # on-chain metrics
 ```
 
