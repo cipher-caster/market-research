@@ -55,9 +55,29 @@ after v1) ran inline, unverified, and serially.
 - [x] `.claude/hooks/guard-owner-files.py` — append-only enforcement for `data/Research/`
       and overwrite-proofing for `data/Watchlist.md`, structural rather than prose, binding
       main and agents alike (18-case test suite) — 2026-08-08
-- [ ] Score the architecture: after ~5 verified reports, check whether verifier blockers
-      are catching real defects or generating noise. Retire or tighten on the evidence,
-      the same way the premium veto was retired
+- [x] Score the architecture: after ~5 verified reports, check whether verifier blockers
+      are catching real defects or generating noise — 2026-08-08. **Verdict: keep, and
+      tighten.** Five reports audited (ETH v3, SOL v2 pre-commit; BTC v4, ZEC v6, HYPE v2
+      retrospectively). Ten blockers, zero noise — every finding reproduced from primary
+      data, and several inverted a claim rather than nitpicking it: a reclaim trigger that
+      had already fired and reversed while the report called it pending; a bear leg
+      measured at roughly half its stated severity; a base rate softened by the exact
+      overlapping-window artifact the report claimed to have excluded; a silent target cut
+      that would have reached the owner invisibly. The two reports that ran the full
+      pipeline are the two that came out clean.
+      Adversarial value runs both ways: correction authors caught errors in the *verifiers*
+      (a premortem resting on a six-up-close streak that was actually 4 up / 2 down; a
+      decay figure computed against a window containing its own comparison period), and
+      one found a gate-semantics error — risk_off is an OR-gate — that no prior pass saw.
+- [x] Gate the three recurring defect classes in `prediction_record.py` — Self-Critique
+      heading completeness, ATR multiple on the Stop, premortem classification label.
+      WARN by default so the immutable back catalogue still validates; `--strict` fails,
+      and all new work validates with `--strict`. Empirical confirmation of the diagnosis:
+      of the eight non-clean reports, every one is missing *Internal consistency*
+      specifically, never the other two — 2026-08-08
+- [ ] Re-score after the next ~5 reports written UNDER the architecture (the first five
+      were mostly written before it). The question shifts from "does the verifier catch
+      defects" to "does it still find enough to justify its cost once authors improve"
 
 ## Phase 4 — Portfolio polish
 

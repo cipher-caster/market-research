@@ -261,7 +261,9 @@ This is what makes the system score-able later, so the fields below are required
 
 **Kill criteria:** one line — what invalidates the thesis.
 
-The Prediction Record is machine-validated: `engine/prediction_record.py` (pydantic schema) parses these exact fields, and a report that fails validation violates this contract. After writing any report, run `python prediction_record.py <report.md>` — fix and re-validate on failure. The calibration loop scores the parsed, typed fields.
+The Prediction Record is machine-validated: `engine/prediction_record.py` (pydantic schema) parses these exact fields, and a report that fails validation violates this contract. After writing any report, run `python prediction_record.py <report.md> --strict` — fix and re-validate on failure. The calibration loop scores the parsed, typed fields.
+
+**`--strict` and the back catalogue.** Beyond the schema, three structural checks gate defect classes that recurred across eight reports written before the verifier stage existed: a Self-Critique Pass missing one of its three mandated headings, a Stop distance stated without an ATR multiple, and a premortem with no classification label. Committed reports are immutable, so these cannot be retrofitted — they emit `WARN` in the default mode and keep the back catalogue validating, and `--strict` promotes them to failures. **All new work validates with `--strict`.** Of the eight non-clean reports, every single one is missing *Internal consistency* specifically — which is why the checks exist as code rather than as prose that drifted for three weeks unnoticed.
 
 ### `## Self-Critique Pass`
 

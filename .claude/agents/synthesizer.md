@@ -45,7 +45,7 @@ You are the judgment step of a deep dive. Three workers have handed you a narrat
 - `## Self-Critique Pass` — citation coverage (% of numeric claims with a source; list `[UNVERIFIED]` items), internal consistency (did the bear actually contradict the bull, or talk past it?), and a premortem **on the CALL, not the thesis** (assume it is wrong at the review date; the single most likely reason, classified regime / correlation / timing / thesis).
 - Worker drafts are not saved. Your synthesis carries the conclusions.
 
-**Validate before returning:** `cd engine && .venv/bin/python prediction_record.py <report.md>` — must print OK. Fix the named field and re-validate on FAIL.
+**Validate before returning:** `cd engine && .venv/bin/python prediction_record.py <report.md> --strict` — must print OK with no WARN lines. Fix the named field and re-validate on FAIL. `--strict` also gates a missing Self-Critique heading (`Citation coverage` / `Internal consistency` / `Premortem`), a Stop distance with no ATR multiple, and an unlabelled premortem.
 
 ## Return
 

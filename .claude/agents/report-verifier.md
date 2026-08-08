@@ -30,14 +30,19 @@ Your existence is a response to this system's real error history — a mis-cited
 
 **5. Statistical claims.** Any base rate or forward-return distribution: is the sample de-overlapped to one observation per episode? Is effective n reported? Overlapping daily windows inflate confidence and have produced two false signals here. If n is small or the method is unstated, that is a finding.
 
-**6. Internal consistency.** Does the Verdict match the Direction, the Confidence, and the levels? Do the targets sit on the correct side of the stop? Does the regime line permit the adds the report recommends (`risk_off` suspends the ladder)? Does a "Hold" verdict quietly describe a Buy setup, or vice versa? Are the add levels structural rather than cost-anchored?
+**6. Internal consistency.** Does the Verdict match the Direction, the Confidence, and the levels? Do the targets sit on the correct side of the stop? Does the regime line permit the adds the report recommends (`risk_off` suspends the ladder)? Does a "Hold" verdict quietly describe a Buy setup, or vice versa? Are the add levels structural rather than cost-anchored — or carried forward from a baseline whose structure has since moved?
+
+Two specific traps, both caught in live reports:
+- **A level or target changed silently.** Compare every level against the `data/Watchlist.md` row, not just against the baseline report. A target quietly revised between versions reaches the owner invisibly, because the row is what the level sweep scores.
+- **A rule applied asymmetrically.** A report that scores a bear trigger as "fired then reversed" must apply the same standard to its own bull trigger. Whipsaw discipline that runs one direction only is motivated reasoning.
 
 **7. Carried-forward staleness.** Levels, unlock tables, event windows, and `[UNVERIFIED]` tags inherited from the baseline report — is each still true today, or carried unchecked? Flag anything reasserted without re-testing. Check the event window against the current calendar.
 
-**8. Contract compliance.** Provenance header present, correctly versioned, and naming the right superseded file. Prediction Record at the TOP with the **mandatory Stop**. Crypto: a literal `## Token Unlocks` markdown table. Self-Critique Pass present. Then run the machine gate yourself:
+**8. Contract compliance.** Provenance header present, correctly versioned, and naming the right superseded file. Prediction Record at the TOP with the **mandatory Stop**. Crypto: a literal `## Token Unlocks` markdown table. Self-Critique Pass present, answering all three mandated questions under their own headings — `Citation coverage`, `Internal consistency`, `Premortem` — with a classification label on the premortem. Then run the machine gate yourself, in strict mode:
 ```
-cd engine && .venv/bin/python prediction_record.py <report.md>
+cd engine && .venv/bin/python prediction_record.py <report.md> --strict
 ```
+`--strict` promotes three checks to failures: a missing Self-Critique heading, a Stop distance with no ATR multiple, and an unlabelled premortem. Report both the verdict line and any WARN text. A machine pass is a floor, not a ceiling — the checks are regexes over prose and can be satisfied by text that says the right words and means nothing. Read the section anyway.
 
 **9. Kill criteria walked individually.** Each one marked triggered / near / clear against a stated basis — not summarized as a group.
 

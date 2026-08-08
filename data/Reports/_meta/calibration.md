@@ -22,6 +22,49 @@ Append-only, most recent first. Conf (p): high = 0.7, medium = 0.55, low = 0.4.
 
 ## Entries
 
+### 2026-08-08 — Audit event: first independent verification pass (no scored calls)
+
+Not a call resolution — the Scoreboard is unchanged (still empty). This records the first
+run of the mandatory `report-verifier` stage introduced 2026-08-08, and what it found.
+
+Five reports audited: ETH v3 and SOL v2 pre-commit, plus BTC v4, ZEC v6 and HYPE v2
+retrospectively (all three written the same day under the old inline process, already
+committed in `fdbf0f5`, and therefore immutable — corrected via dated
+`*-audit-correction.md` reports rather than edits).
+
+**Ten blockers, zero noise.** Every finding was reproduced from primary data. The
+consequential ones inverted a claim rather than polishing it:
+
+- **HYPE v2** — the 54.331 reclaim trigger was described as pending "$0.22 away" when it
+  had fired 08-05/06 and reversed 08-07. The report applied "fired then reversed" scoring
+  to its own bear trigger but not its bull trigger.
+- **ZEC v6** — the n=39 de-overlapped base rate was correct and independently reproduced,
+  but the +155%/+183% fat-tail figures quoted beside it were within-episode double-counts
+  of a single already-counted episode: the exact overlapping-window artifact the report
+  claimed to have discarded.
+- **SOL v2** — an undisclosed EOY-base target cut (87.79 → 83.98) that never referenced the
+  live Watchlist row and would have reached the owner invisibly.
+- **BTC v4** — the 65,508 reclaim rung described as "armed since 07-26" when its 3-bar
+  window expired unconfirmed at the 07-28 close, carried word-for-word from v3.
+
+**Three defect classes recurred across different authors and tickers**, so they were fixed
+as code rather than prose: Self-Critique heading completeness, ATR multiple on the Stop,
+premortem classification label. Now gated by `prediction_record.py --strict` (WARN by
+default so the immutable back catalogue still validates). Of the eight non-clean reports,
+*every one* is missing `Internal consistency` specifically — the check that would have
+caught both the SOL target cut and the HYPE trigger contradiction.
+
+**Adversarial value runs both ways.** Correction authors caught errors in the verifiers: a
+premortem resting on "six straight up-closes" that were actually 4 up / 2 down; a decay
+figure computed against a 30-day window containing its own comparison period. One found a
+gate-semantics error no prior pass saw — `risk_off` is an OR-gate, so v4's "closer to
+flipping than ever" addressed only the drawdown leg while the 200-MA leg was binding and
+nowhere near clearing. Neither the author nor the auditor is presumed right; both re-derive.
+
+**Active biases:** none. (Bias lines still require scored live calls — this is a process
+audit, not a resolution. The doctrine and tooling changes live in `docs/SPEC.md` and
+`engine/prediction_record.py`, not here.)
+
 ### 2026-07-26 — System-validation event: decision-rule backtest (no scored calls)
 
 Not a call resolution — the Scoreboard is unchanged (still empty). The decision rules

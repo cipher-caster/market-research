@@ -2,7 +2,15 @@
 import pytest
 from pydantic import ValidationError
 
-from prediction_record import _downside_flag, is_scoreable_report, parse_report
+from prediction_record import (
+    _downside_flag,
+    is_scoreable_report,
+    missing_self_critique_headings,
+    parse_report,
+    premortem_missing_label,
+    stop_missing_atr_multiple,
+    structural_warnings,
+)
 
 GOOD = """v3 | Supersedes: 2026-07-01-deep-dive.md | Trigger: owner request
 
@@ -24,11 +32,19 @@ GOOD = """v3 | Supersedes: 2026-07-01-deep-dive.md | Trigger: owner request
 | Direction | buy (primary). Downside flag: none |
 | Regime | risk_off (BTC below 200-MA) |
 | Add levels | reclaim of 105k on daily close |
-| Stop | 90,000 — daily close below invalidates |
+| Stop | 90,000 — daily close below invalidates, 2.5x ATR |
 | Confidence | medium |
 | Review date | 2026-09-30 |
 
 **Kill criteria:** daily close below 90k, or ETF outflows > 3 consecutive weeks.
+
+## Self-Critique Pass
+
+**Citation coverage:** all numeric claims are sourced; no `[UNVERIFIED]` items.
+
+**Internal consistency:** the bear and bull cases cite the same data and disagree on trend, a genuine disagreement.
+
+**Premortem:** if this call is wrong at review, the most likely reason is regime, not thesis — the gate flips and the reclaim runs without us.
 """
 
 
@@ -101,7 +117,7 @@ def test_missing_provenance_fails():
 
 
 def test_missing_stop_fails():
-    bad = GOOD.replace("| Stop | 90,000 — daily close below invalidates |", "")
+    bad = GOOD.replace("| Stop | 90,000 — daily close below invalidates, 2.5x ATR |", "")
     with pytest.raises(ValueError, match="[Ss]top"):
         parse_report(bad, "BTC")
 
@@ -167,3 +183,135 @@ def test_direction_earliest_keyword_wins():
 ])
 def test_is_scoreable_report(path, expected):
     assert is_scoreable_report(path) is expected
+
+
+# --- Soft structural checks --------------------------------------------------
+# WARN by default, --strict promotes to failure. GOOD (above) is fully
+# compliant: three named Self-Critique questions, an ATR multiple on the
+# Stop, and a labelled Premortem.
+
+def test_good_report_has_no_structural_warnings():
+    assert structural_warnings(GOOD) == []
+
+
+def test_self_critique_missing_internal_consistency():
+    """The exact BTC v2-v4 / ZEC v4-v6 / HYPE v1-v2 drift: house-style
+    substitute headings, internal consistency dropped."""
+    r = GOOD.replace(
+        "**Internal consistency:** the bear and bull cases cite the same data "
+        "and disagree on trend, a genuine disagreement.\n\n",
+        "**Source conflict:** no conflicting sources this cycle.\n\n",
+    )
+    assert missing_self_critique_headings(r) == ["internal consistency"]
+    assert any("Internal Consistency" in w for w in structural_warnings(r))
+
+
+def test_self_critique_all_present_tolerant_of_markdown():
+    """Bullets, headers, bold, trailing colons, extra sections — all still count."""
+    section = """## Self-Critique Pass
+
+- ### citation COVERAGE
+  all claims sourced.
+- **Internal Consistency**
+  bear and bull genuinely disagree.
+- **Premortem (on the CALL):** the reason is regime, not thesis.
+- **Calibration bias check:** none active.
+"""
+    assert missing_self_critique_headings(section) == []
+
+
+def test_self_critique_section_missing_entirely():
+    r = GOOD.replace(GOOD[GOOD.index("## Self-Critique Pass"):], "")
+    assert missing_self_critique_headings(r) == ["citation coverage", "internal consistency", "premortem"]
+
+
+@pytest.mark.parametrize("stop_cell", [
+    "90,000 — daily close below invalidates, 5.0x ATR",
+    "90,000 — daily close below invalidates, 5.0 ATR",
+    "90,000 — daily close below invalidates, 2·ATR",   # "2·ATR"
+    "90,000 — daily close below invalidates, n ATR",
+    "90,000 — daily close below invalidates, ATR multiple 5.0",
+])
+def test_stop_atr_multiple_accepted_phrasings(stop_cell):
+    r = GOOD.replace("90,000 — daily close below invalidates, 2.5x ATR", stop_cell)
+    assert stop_missing_atr_multiple(r) is False
+
+
+def test_stop_missing_atr_multiple_percent_only():
+    """The exact BTC v3/v4 and HYPE v2 defect: distance stated only as a percent."""
+    r = GOOD.replace("90,000 — daily close below invalidates, 2.5x ATR",
+                     "90,000 — daily close below invalidates, 11.0% away")
+    assert stop_missing_atr_multiple(r) is True
+    assert any("ATR multiple" in w for w in structural_warnings(r))
+
+
+@pytest.mark.parametrize("premortem_line", [
+    "**Premortem:** the reason is regime, not thesis.",
+    "**Premortem:** the reason is correlation, not idiosyncratic — a broad drawdown drags this down too.",
+    "**Premortem:** second most likely is a timing/regime miss, not a thesis miss.",
+    "**Premortem:** a regime/correlation failure of the call, not a thesis failure.",
+])
+def test_premortem_label_accepted_phrasings(premortem_line):
+    r = GOOD.replace(
+        "**Premortem:** if this call is wrong at review, the most likely reason "
+        "is regime, not thesis — the gate flips and the reclaim runs without us.",
+        premortem_line,
+    )
+    assert premortem_missing_label(r) is False
+
+
+def test_premortem_missing_classification_label():
+    """The exact BTC v4 defect: a premortem paragraph with no regime/correlation/
+    timing/thesis classification — a bare mention of 'regime' elsewhere in the
+    prose (e.g. 'the regime gate') does not count as the label."""
+    r = GOOD.replace(
+        "**Premortem:** if this call is wrong at review, the most likely reason "
+        "is regime, not thesis — the gate flips and the reclaim runs without us.",
+        "**Premortem:** if this call is wrong at review, the most likely reason "
+        "is that the regime gate stays red through a clean breakout and the call "
+        "captures none of the move.",
+    )
+    assert premortem_missing_label(r) is True
+    assert any("classification label" in w for w in structural_warnings(r))
+
+
+def test_validate_file_warns_but_stays_ok_by_default(tmp_path):
+    bad = GOOD.replace(
+        "**Internal consistency:** the bear and bull cases cite the same data "
+        "and disagree on trend, a genuine disagreement.\n\n",
+        "",
+    )
+    p = tmp_path / "2026-07-24-status-refresh.md"
+    p.write_text(bad)
+    from prediction_record import validate_file
+    ok, msg = validate_file(p)
+    assert ok is True
+    assert msg.startswith("OK    2026-07-24-status-refresh.md")
+    assert "WARN" in msg
+    assert "Internal Consistency" in msg
+
+
+def test_validate_file_strict_promotes_warning_to_failure(tmp_path):
+    bad = GOOD.replace(
+        "**Internal consistency:** the bear and bull cases cite the same data "
+        "and disagree on trend, a genuine disagreement.\n\n",
+        "",
+    )
+    p = tmp_path / "2026-07-24-status-refresh.md"
+    p.write_text(bad)
+    from prediction_record import validate_file
+    ok, msg = validate_file(p, strict=True)
+    assert ok is False
+    assert msg.startswith("FAIL")
+    assert "Internal Consistency" in msg
+
+
+def test_validate_file_clean_report_ok_output_unaffected(tmp_path):
+    """A report clean on the three new checks prints exactly the pre-existing
+    OK line — no WARN lines appended, output byte-identical to before."""
+    p = tmp_path / "2026-01-01-deep-dive.md"
+    p.write_text(GOOD)
+    from prediction_record import validate_file
+    ok, msg = validate_file(p)
+    assert ok is True
+    assert msg == "OK    2026-01-01-deep-dive.md  v3 buy stop=90000 review=2026-09-30"

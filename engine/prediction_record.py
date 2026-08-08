@@ -98,6 +98,17 @@ def has_unlock_table(text: str) -> bool:
     return bool(re.search(r"^\s*\|.+\|\s*$", following, re.M))
 
 
+def _entries_risk_fields(text: str) -> dict[str, str]:
+    """The 'Entries & risk' table as a lowercase-keyed field -> cell-value dict."""
+    fields: dict[str, str] = {}
+    er = re.search(r"\*\*Entries & risk:\*\*(.*?)(?:\n\*\*|\n##|\Z)", text, re.S)
+    if er:
+        for cols in _table_rows(er.group(1)):
+            if len(cols) >= 2 and cols[0].lower() != "field":
+                fields[cols[0].lower()] = cols[1]
+    return fields
+
+
 def parse_report(text: str, ticker: str, crypto: bool = False) -> PredictionRecord:
     """Extract the Prediction Record fields from a report's markdown.
 
@@ -117,13 +128,7 @@ def parse_report(text: str, ticker: str, crypto: bool = False) -> PredictionReco
     verdict = re.search(r"\*\*Verdict:\*\*\s*(.+)", text)
     kill = re.search(r"\*\*Kill criteria:\*\*\s*(.+)", text)
 
-    # Entries & risk table: | Field | Value |
-    fields: dict[str, str] = {}
-    er = re.search(r"\*\*Entries & risk:\*\*(.*?)(?:\n\*\*|\n##|\Z)", text, re.S)
-    if er:
-        for cols in _table_rows(er.group(1)):
-            if len(cols) >= 2 and cols[0].lower() != "field":
-                fields[cols[0].lower()] = cols[1]
+    fields = _entries_risk_fields(text)
 
     # Targets table: | Horizon | Target | Return | Basis |
     targets: list[TargetRow] = []
@@ -171,15 +176,134 @@ def parse_report(text: str, ticker: str, crypto: bool = False) -> PredictionReco
     )
 
 
-def validate_file(path) -> tuple[bool, str]:
+# --- Soft structural checks -------------------------------------------------
+# These catch three recurring defect classes confirmed across independently
+# audited reports (2026-08-08 verifier pass): Self-Critique format drift,
+# stop distance stated only in percent (no volatility framing), and a
+# premortem missing its mandated failure-class label. Committed reports
+# predate these checks and several fail them by construction, so they WARN
+# by default (do not affect exit code) and only become hard failures under
+# --strict. Existing hard gates (schema, unlock table) are unaffected in
+# either mode.
+
+_SELF_CRITIQUE_HEADINGS = ("citation coverage", "internal consistency", "premortem")
+
+
+def _self_critique_section(text: str) -> str | None:
+    m = re.search(r"^#{1,4}\s*Self-Critique Pass\s*$", text, re.M | re.I)
+    if not m:
+        return None
+    return text[m.end():].split("\n#", 1)[0]
+
+
+def missing_self_critique_headings(text: str) -> list[str]:
+    """Mandated Self-Critique questions (SPEC.md) absent by name.
+
+    Matched case-insensitively, tolerant of bullets/headers/bold/trailing
+    colons — a line "counts" if it *starts with* the mandated phrase once
+    that markdown scaffolding is stripped. Extra sections (e.g. a
+    'Calibration bias check') are allowed; only a missing mandated one warns.
+    """
+    section = _self_critique_section(text)
+    if section is None:
+        return list(_SELF_CRITIQUE_HEADINGS)
+    found = set()
+    for line in section.splitlines():
+        stripped = re.sub(r"^[\s\-#*]+", "", line).strip().lower()
+        for phrase in _SELF_CRITIQUE_HEADINGS:
+            if stripped.startswith(phrase):
+                found.add(phrase)
+    return [h for h in _SELF_CRITIQUE_HEADINGS if h not in found]
+
+
+# A number attached to "ATR" in any order/spacing ("5.0x ATR", "2·ATR",
+# "ATR 3.42"), or the spec's own symbolic example ("n ATR") — pragmatic
+# enough to catch a total absence of volatility framing, not to police
+# phrasing.
+_ATR_RE = re.compile(
+    r"\d+(?:\.\d+)?\s*[x×\-·]?\s*ATR\b"
+    r"|ATR\b[^\n]{0,20}?\d+(?:\.\d+)?"
+    r"|\bn\s*x?\s*ATR\b",
+    re.I,
+)
+
+
+def stop_missing_atr_multiple(text: str) -> bool:
+    """True if the Stop field states a distance with no ATR multiple anywhere in the cell."""
+    stop_cell = _entries_risk_fields(text).get("stop", "")
+    return bool(stop_cell) and not _ATR_RE.search(stop_cell)
+
+
+_PREMORTEM_RE = re.compile(
+    r"\*{0,2}Premortem\b[^\n]*?:\**\s*(.*?)(?:\n\s*\n|\n\s*[-*]\s*\*\*|\n#{1,4}\s|\Z)",
+    re.I | re.S,
+)
+_PREMORTEM_LABELS = ("regime", "correlation", "timing", "thesis")
+_PREMORTEM_MARKERS = ("miss", "misses", "failure", "failures", "risk", "risks")
+
+
+def _premortem_text(text: str) -> str | None:
+    m = _PREMORTEM_RE.search(text)
+    return m.group(1) if m else None
+
+
+def premortem_missing_label(text: str) -> bool:
+    """True if the premortem doesn't classify its failure mode as one of the
+    four SPEC-mandated labels (regime / correlation / timing / thesis).
+
+    A bare word match is too loose — "the regime gate" is prose, not a
+    classification. Counted only when a label word directly follows "is"/
+    "not" (the SPEC's own "reason is regime, not thesis" phrasing) or sits
+    near (within ~25 chars of) a classifying noun like "miss"/"failure".
+    """
+    premortem = _premortem_text(text)
+    if premortem is None:
+        return True
+    labels = list(re.finditer(r"\b(?:" + "|".join(_PREMORTEM_LABELS) + r")\b", premortem, re.I))
+    if not labels:
+        return True
+    for lm in labels:
+        if re.search(r"\b(?:is|not)\s+(?:an?\s+)?$", premortem[max(0, lm.start() - 8):lm.start()], re.I):
+            return False
+    markers = list(re.finditer(r"\b(?:" + "|".join(_PREMORTEM_MARKERS) + r")\b", premortem, re.I))
+    for lm in labels:
+        for mm in markers:
+            if abs(mm.start() - lm.start()) <= 25:
+                return False
+    return True
+
+
+def structural_warnings(text: str) -> list[str]:
+    """The three soft checks, as human-readable WARN messages (empty = clean)."""
+    warnings = []
+    missing = missing_self_critique_headings(text)
+    if missing:
+        warnings.append("Self-Critique Pass missing mandated question(s): "
+                        + ", ".join(h.title() for h in missing))
+    if stop_missing_atr_multiple(text):
+        warnings.append("Stop field states a distance with no ATR multiple (percent-only risk framing)")
+    if premortem_missing_label(text):
+        warnings.append("Premortem missing its classification label (regime / correlation / timing / thesis)")
+    return warnings
+
+
+def validate_file(path, strict: bool = False) -> tuple[bool, str]:
     from pathlib import Path
     p = Path(path)
     ticker = p.parent.name if p.parent.name not in ("Reports", "_meta") else p.stem
     crypto = "Crypto" in p.parts
     try:
-        rec = parse_report(p.read_text(), ticker, crypto=crypto)
-        return True, f"OK    {p.name}  v{rec.version} {rec.direction} " \
-                     f"stop={rec.stop:g} review={rec.review_date}"
+        text = p.read_text()
+        rec = parse_report(text, ticker, crypto=crypto)
+        base = f"OK    {p.name}  v{rec.version} {rec.direction} " \
+               f"stop={rec.stop:g} review={rec.review_date}"
+        warnings = structural_warnings(text)
+        if not warnings:
+            return True, base
+        warn_lines = "\n".join(f"WARN  {p.name}  {w}" for w in warnings)
+        if strict:
+            return False, f"FAIL  {p.name}  --strict: " + "; ".join(warnings)
+        return True, base + "\n" + warn_lines
     except (ValueError, ValidationError) as e:
         first = str(e).splitlines()[0] if isinstance(e, ValueError) else \
             "; ".join(f"{err['loc']}: {err['msg']}" for err in e.errors()[:3])
@@ -206,6 +330,9 @@ def main() -> None:
     ap.add_argument("paths", nargs="*", help="report .md files")
     ap.add_argument("--all", action="store_true", help="validate all of data/Reports")
     ap.add_argument("--json", action="store_true", help="dump parsed record(s) as JSON")
+    ap.add_argument("--strict", action="store_true",
+                    help="promote structural WARNs (Self-Critique headings, "
+                         "Stop ATR multiple, Premortem label) to failures")
     args = ap.parse_args()
 
     paths = list(args.paths)
@@ -216,7 +343,7 @@ def main() -> None:
 
     ok_all = True
     for path in paths:
-        ok, msg = validate_file(path)
+        ok, msg = validate_file(path, strict=args.strict)
         ok_all &= ok
         if args.json and ok:
             from pathlib import Path
