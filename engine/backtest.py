@@ -75,22 +75,22 @@ def fetch_full_history(base: str, start: str = "2017-01-01") -> pd.DataFrame:
 # --------------------------------------------------------------- indicators
 def panel(df: pd.DataFrame) -> pd.DataFrame:
     """Causal restatement of the engine's per-bar state (verified by verify())."""
-    c, h, l = df["Close"], df["High"], df["Low"]
+    c, h, lo = df["Close"], df["High"], df["Low"]
     p = pd.DataFrame(index=df.index)
-    p["close"], p["high"], p["low"] = c, h, l
+    p["close"], p["high"], p["low"] = c, h, lo
     p["ma20"] = c.rolling(20).mean()
     p["ma50"] = c.rolling(50).mean()
     p["ma200"] = c.rolling(200).mean()
     p["rsi"] = ta.rsi(c, length=14)
     p["macd_hist"] = ta.macd(c)["MACDh_12_26_9"]
-    p["atr"] = ta.atr(h, l, c, length=14)
+    p["atr"] = ta.atr(h, lo, c, length=14)
     p["dd90"] = (c / h.rolling(R.DRAWDOWN_LOOKBACK).max() - 1) * 100
-    rh, rl = h.rolling(RANGE_LOOKBACK).max(), l.rolling(RANGE_LOOKBACK).min()
+    rh, rl = h.rolling(RANGE_LOOKBACK).max(), lo.rolling(RANGE_LOOKBACK).min()
     p["pct_in_range"] = (c - rl) / (rh - rl) * 100
     p["zone"] = np.where(c > (rh + rl) / 2, "premium", "discount")
     # the rung is the PRIOR bar's 10-bar swing low (today can't define the
     # level it is reclaiming)
-    p["rung"] = l.rolling(10).min().shift(1)
+    p["rung"] = lo.rolling(10).min().shift(1)
     return p
 
 
@@ -166,8 +166,8 @@ def fwd_series(p: pd.DataFrame, mask: pd.Series, hz: int) -> pd.Series:
 def resolve_calls(p, mask, ticker, r_multiple=2.0) -> pd.DataFrame:
     """Layer B: bracket each signal close with the engine's 2*ATR stop and a
     2R target; first touch resolves, timeout scores at the window close."""
-    c, h, l, atr = (p["close"].values, p["high"].values,
-                    p["low"].values, p["atr"].values)
+    c, h, lo, atr = (p["close"].values, p["high"].values,
+                     p["low"].values, p["atr"].values)
     idx = np.where(mask.values & ~np.isnan(atr))[0]
     trades, busy = [], -1
     for i in idx:
@@ -182,7 +182,7 @@ def resolve_calls(p, mask, ticker, r_multiple=2.0) -> pd.DataFrame:
         end = min(i + MAX_BARS, len(c) - 1)
         outcome, exit_i = None, end
         for j in range(i + 1, end + 1):
-            if l[j] <= stop:            # same-bar tie -> stop (worst case)
+            if lo[j] <= stop:           # same-bar tie -> stop (worst case)
                 outcome, exit_i = "stop", j
                 break
             if h[j] >= target:
