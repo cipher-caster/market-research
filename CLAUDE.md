@@ -32,17 +32,27 @@ available — same math, in-conversation.
 
 - `README.md` — short front door (tour + quick start)
 - `docs/SPEC.md` — the system spec (the contract; read it, follow it)
-- `.claude/commands/` — `/research`, `/refresh`, `/postmortem`, `/research-watchlist`, `/report-view` (render a report .md as a private artifact or PDF on request; .md stays canonical)
+- `.claude/commands/` — `/research`, `/refresh`, `/postmortem`, `/research-watchlist`, `/report-view` (render a report .md as a private artifact or PDF on request; .md stays canonical). Thin dispatchers: they wire inputs and spawn agents, they do not restate the briefs.
+- `.claude/agents/` — the agent roster, one brief per role: `asset-analyst`, `report-verifier`, `fundamental-worker`, `quant-worker`, `bear-worker`, `synthesizer`. **Source of truth for how each role works** — edit the brief, not the command.
+- `.claude/hooks/guard-owner-files.py` — PreToolUse guard making `data/Research/` append-only and `data/Watchlist.md` overwrite-proof, for main and agents alike. A block is a correct answer; never work around it.
 - `engine/` — Python compute layer; setup in `engine/README.md`
 - `data/Watchlist.md` — the calls table (source of truth for levels/status)
 - `data/Research/{TICKER}.md` — the owner's own thesis, append-only. Agent writes ONLY dated one-line report pointers to the Updates Log (owner policy 2026-07-25); thesis content is owner-only. Validated reports auto-commit, house-style message.
 - `data/Reports/{Crypto|Equities}/{TICKER}/` — agent-generated reports
-- `data/Reports/_meta/calibration.md` — active biases; inject into Tier 2/3 prompts
+- `data/Reports/_meta/calibration.md` — active biases; inject verbatim into EVERY agent brief
 - `docs/` — design references
 
 ## Conventions
 
 - No emojis. Direct tone, executive-summary-first.
+- **Research is delegated, never written inline.** Spawn from the roster; orchestrate;
+  summarize from the agents' return blocks rather than reading report bodies back. Bootstrap
+  the venv once before spawning, put independent spawns in one message, and let only the main
+  session run `git` or touch `data/Research/`, `data/Watchlist.md`, `calibration.md`. The
+  inline exceptions are listed in `docs/SPEC.md` under "When NOT to delegate" — a single price
+  lookup or a conversational question does not need an agent.
+- **Every scoreable report gets a `report-verifier` pass before it commits.** The author is
+  never the auditor.
 - Answer market questions boldly when grounded in data/calculation/probability:
   run the computations (engine or quick scripts), give a confluence table with a
   basis per band, name a central estimate, caveats at the END. Never open with a

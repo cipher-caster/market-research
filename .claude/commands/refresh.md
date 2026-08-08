@@ -1,10 +1,11 @@
 # /refresh — Single-asset live status refresh (stocks & crypto)
 
-Re-check ONE asset with an active call: pull the live price + any catalyst since
-the last report, diff against that report, and write a short dated refresh that
-**explicitly tests the stop and kill criteria**. This is the "is anything broken right
-now?" pass — lighter than `/research` (no orchestrator, no 3 workers), narrower than
-`/research-watchlist` (one ticker, not the whole list).
+Re-check ONE asset with an active call: pull the live price + any catalyst since the last
+report, diff against that report, and write a short dated refresh that **explicitly tests the
+stop and kill criteria**. This is the "is anything broken right now?" pass.
+
+This runs as **one `asset-analyst` plus one `report-verifier`** — the Refresh & Scan tier in
+`docs/SPEC.md`. You orchestrate; you do not write the report yourself.
 
 Use it when: the owner names one asset and wants the current read, a stop/level may be in play,
 a known catalyst date (unlock, earnings, ETF) just hit, or a scheduled review_date came due.
@@ -14,90 +15,55 @@ a known catalyst date (unlock, earnings, ETF) just hit, or a scheduled review_da
 
 ## The contract lives in docs/SPEC.md
 
-`docs/SPEC.md` is the source of truth: long-only/no-leverage
-rules, the Prediction Record format, the technicals layer, the calibration loop.
-**Read it and CLAUDE.md first; never override the owner's documented preferences.** This
-command only wires up the inputs — it does not change the rules.
+`docs/SPEC.md` is the source of truth: the tiers, the Prediction Record format, the technicals
+layer, the orchestration rules, the calibration loop. The **agent briefs in `.claude/agents/`**
+are the source of truth for how each role works. This command only wires up the inputs — it
+does not restate either.
 
 ## Steps
 
-1. **Parse `$ARGUMENTS`** — one ticker, uppercase. If more than one is given, refresh
-   the first and tell the owner the rest are out of scope (use `/research-watchlist` for many).
+1. **Parse `$ARGUMENTS`** — one ticker, uppercase. If more than one is given, refresh the first
+   and tell the owner the rest are out of scope (use `/research-watchlist` for many).
 
-2. **Load context** (the asset's full local history — this is a diff pass, so the prior
-   report is the baseline you compare against):
-   - `data/Watchlist.md` — the asset's Watchlist row (Status,
-     Entry, Target, **Stop**, Type). Note `Type` → `--crypto` flag + `Crypto|Equities` path.
-   - `data/Research/{TICKER}.md` — the owner's thesis and current Levels. **Read-only. Never edit here.**
-   - The **most recent file** in `data/Reports/{Crypto|Equities}/{TICKER}/` — the baseline.
-     Pull its Verdict, levels, kill criteria, and review_date.
-   - `data/Reports/_meta/calibration.md` — latest "Active biases" to counter-weight.
+2. **Resolve the inputs** (cheap reads, main session — the analyst re-reads what it needs):
+   - `data/Watchlist.md` — the asset's row. `Type` decides the `--crypto` flag and the
+     `Crypto|Equities` path. If there is no row, or Status is `Resolved`/`Invalidated`, say so
+     and ask before proceeding.
+   - The most recent file in `data/Reports/{Crypto|Equities}/{TICKER}/` — the baseline filename
+     and its version number. If none exists, this is a first call: run `/research` instead.
+   - `data/Reports/_meta/calibration.md` — the latest **Active biases**, verbatim.
 
-3. **Pull the live read:**
-   - **Technicals (cited by construction):**
-     ```bash
-     cd ~/Documents/projects/market-research/engine
-     [ -d .venv ] || (python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]")
-     . .venv/bin/activate
-     python technicals.py {TICKER}            # stock
-     python technicals.py {TICKER} --crypto   # crypto
-     ```
-     Interpret the snapshot; do not recompute. If it errors or returns empty (e.g. a
-     crypto symbol Yahoo doesn't carry), **say so plainly and fall back to a cited live
-     web price** — do NOT invent levels. Carry the add-ladder/SMC rungs forward from the
-     baseline report when the script can't produce fresh ones.
-   - **Regime gate (mandatory before any add/entry call):**
-     ```bash
-     python regime.py            # crypto benchmark (BTC-USD); use SPY for stocks
-     ```
-     State the regime in the Prediction Record. risk_off = add rungs suspended (stops
-     still execute) — see the spec's gate rules.
-   - **Positioning (crypto only):**
-     ```bash
-     python funding.py {TICKER}  # funding + OI crowding read (Binance/Bybit)
-     ```
-     Crowded shorts at a support rung or crowded longs at a target are context the
-     verdict must mention; protocol fundamentals via `python defillama.py {slug}`.
-   - **Web check:** the live price from a **volume-weighted aggregate** (prefer CoinGecko
-     aggregate / a primary feed over a single exchange; if two sources disagree, lead
-     with the aggregate and note the conflict). Then any **catalyst since the baseline
-     report** — unlock claimed vs scheduled, earnings, ETF flow, regulatory headline.
-     Every numeric web claim needs a source URL or an `[UNVERIFIED]` tag (cite-or-fail).
+3. **Bootstrap the venv ONCE, before spawning:**
+   ```bash
+   cd engine && [ -d .venv ] || (python3 -m venv .venv && .venv/bin/pip install -e ".[dev]")
+   .venv/bin/python test_smoke.py
+   ```
+   If the smoke test fails, stop and report — never spawn against a broken data layer.
 
-4. **Test the triggers — this is the whole point.** Against the live price, state plainly:
-   - **Stop:** is it breached? On an **intraday** print, a **daily close**, or not at all?
-     The spec's stop rule is *mandatory, no exceptions* — read a hard stop on the
-     intraday/hard basis and name the close-basis fork honestly if price is hovering at it.
-     A breached stop is a **reduce/exit** call. Per the spec, you MAY also add a
-     secondary opt-in **short flag** when the exhaustion+premium setup is present (hard
-     stop above invalidation + a defined cover target) — but long stays the default.
-   - **Kill criteria:** walk each one from the baseline report; mark triggered / near / clear.
-   - **Add levels:** adds come from the computed add-ladder (or a confirmed breakout) —
-     never a cost-anchored "a bit below." If price is extended above the nearest rung,
-     say there's no low-risk add and name the rung. Dealing-range zone is location
-     context only, not a gate (premium veto retired 2026-07-26, see docs/SPEC.md).
+4. **Spawn `asset-analyst`.** The brief must carry: ticker, Type, asset-class path, the
+   baseline report path and version, the Watchlist stop/entry/target, today's date, the active
+   calibration biases verbatim, and the trigger for this refresh (owner request / review date
+   due / level event / catalyst). State the output filename: `{YYYY-MM-DD}-status-refresh.md`.
 
-5. **Write** `data/Reports/{Crypto|Equities}/{TICKER}/{YYYY-MM-DD}-status-refresh.md`:
-   - Provenance header first line (`v{N} | Supersedes: {baseline file} | Trigger: ...` — see docs/SPEC.md), then `## Prediction Record` at the TOP — Verdict (lead with any stop/kill event; put the
-     action NOW + next trigger first), time-bound Targets table, Entries & risk table with
-     the **mandatory Stop**, Confidence, **Review date**, Kill criteria.
-   - `## What Changed Since Last Report ({baseline date})` — the diff: price move, catalyst
-     resolution, whether a trigger flipped.
-   - Short `## Self-Critique Pass` — citation coverage + any source conflict resolved
-     (which feed you led with and why) + the calibration bias check.
-   - Keep it compact. Separate **stopped-out** (trade discipline) from **thesis-dead**
-     (fundamentals) when they point opposite ways — honor the stop without auto-killing the thesis.
+5. **Spawn `report-verifier`** on the returned report path, with the same date and biases.
+   - `NEEDS FIX` → send the blockers back to the `asset-analyst` (`SendMessage`, so it keeps
+     its context) and re-verify. Loop until PASS.
+   - If the verifier's independent premortem names a different primary failure mode than the
+     author's, both belong in the Self-Critique Pass.
 
-6. **Validate the report** — from `engine/` (venv active):
-   `python prediction_record.py <the new report.md>` — must print OK. On FAIL,
-   fix the named field and re-validate before summarizing.
+6. **If the call changed** — verdict flip or confidence upgrade versus the baseline — spawn a
+   `bear-worker` before accepting it, and have the analyst answer its strongest hit in the
+   report. A changing call is the highest-risk moment in this system.
 
-7. **Close out, summarize, then stop.** After the report validates (owner policy 2026-07-25):
-   auto-append a dated one-line pointer (version, verdict, report path) to
-   `data/Research/{TICKER}.md` Updates Log and commit the report + pointer — pointers only,
-   never analysis. Then give the owner the verdict and the one decision he owns. Everything
-   else stays ask-first — a stop/kill event is the most tempting moment to rewrite the
-   thesis; don't. Ask whether to:
-   - add any thesis-content entry to `data/Research/{TICKER}.md` (beyond the pointer), and/or
+7. **Commit — main session only, agents never run git.** After the report validates
+   (`prediction_record.py` prints OK) and the verifier PASSes: append the dated one-line
+   pointer (version, verdict, report path) to `data/Research/{TICKER}.md` Updates Log via a
+   pure-append Edit, and commit the report + pointer together. Pointers only, never analysis.
+
+8. **Summarize, then stop.** Give the owner the verdict and the one decision he owns, from the
+   analyst's return block — do not paste the report. Everything else is ask-first; a stop/kill
+   event is the most tempting moment to rewrite the thesis, so don't. Ask whether to:
+   - add any thesis-content entry to `data/Research/{TICKER}.md` beyond the pointer, and/or
    - flip the Watchlist Status (`Active` → `Resolved`/`Invalidated`) and adjust levels.
+
    Apply only what the owner confirms.

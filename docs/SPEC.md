@@ -11,6 +11,8 @@ market-research/
   README.md              ← short front door (tour + quick start)
   docs/SPEC.md           ← this file (the system contract)
   .claude/commands/      ← /research /refresh /postmortem /research-watchlist /report-view
+  .claude/agents/        ← the agent roster (one file per role; briefs live here, not in commands)
+  .claude/hooks/         ← guard-owner-files.py — structural enforcement of the append-only rules
   engine/                ← deterministic compute layer (scripts, MCP server, cron)
   docs/                  ← design references and clippings
   data/                  ← the data layer (source of truth)
@@ -61,39 +63,160 @@ Status is the call lifecycle: `Active` (call stands), `Resolved` (target hit or 
 
 The depth of agent research is determined by the decision being made. Don't over-spend on swings; don't under-spend on conviction calls.
 
+**Research is delegated, not written inline.** Every workflow below runs in subagents; the
+main session orchestrates. This is not a style preference — it buys three things the inline
+version cannot have: an author who is not also the auditor, N tickers analysed in parallel
+without cross-asset anchoring, and a main context that holds the decisions rather than every
+report body it produced. The exceptions are listed under "When NOT to delegate".
+
+### The agent roster
+
+Briefs live in `.claude/agents/` — one file per role, carrying that role's tool grants and
+model. **They are the single source of truth for how each role works.** Commands dispatch to
+them; commands do not restate them. Where a brief drifts from this spec, the spec wins.
+
+| Agent | Model | Role |
+|---|---|---|
+| `asset-analyst` | sonnet | One ticker end-to-end: baseline, own data pull, trigger tests, writes the dated report |
+| `report-verifier` | sonnet | Read-only audit of a finished report. Re-derives numbers, writes an independent premortem |
+| `fundamental-worker` | sonnet | Tier 2/3 narrative thesis. No price or numeric claims |
+| `quant-worker` | sonnet | Tier 2/3 numbers, valuation, comps, unlock table, on-chain |
+| `bear-worker` | sonnet (opus on T3) | Adversarial case at full strength |
+| `synthesizer` | sonnet (opus on T3) | The judgment step: resolves the three briefs, sets levels, writes the Prediction Record |
+
+### The pipeline
+
+Every tier runs the same stages. Only the width of `gather` changes.
+
+```
+gather  →  synthesize  →  verify  →  fix  →  commit
+(parallel)  (judgment)    (audit)   (author)  (main session)
+```
+
+**`verify` runs on every report — refresh, scan, and deep dive alike.** It is not a deep-dive
+luxury. The system's actual error history is a mis-cited prior close and intraday low (which
+cost a correction report), a stop cushion described in raw percent when ATR made it ordinary
+noise, and a base rate computed on overlapping windows that nearly shipped as evidence — all
+three checklist-catchable, all three in the highest-volume path. `NEEDS FIX` goes back to the
+author and the loop repeats; nothing commits with an unresolved blocker.
+
+### Refresh & Scan — the standing workflow (1 analyst + 1 verifier)
+
+**When:** an active call needs re-testing — `/refresh` on one ticker, or one ticker inside a
+`/research-watchlist` sweep. This is the highest-volume path in the system and it carries the
+live call: v1 is a deep dive, but every version after it is a refresh.
+
+**Architecture:** one `asset-analyst` writes the dated report; one `report-verifier` audits it.
+A refresh that **changes the call** — verdict flip or confidence upgrade — additionally spawns
+a `bear-worker` before the analyst commits to the new call. That is the moment of highest risk
+and the one place a refresh earns an adversary.
+
+**Output:** `{date}-status-refresh.md` (single asset) or `{date}-watchlist-scan.md` (sweep).
+
 ### Tier 1 — Quick Check (1 sonnet agent)
 
 **When:** ticker clarification, "what is X", swing trade context, fast-news interpretation. Anything that doesn't warrant a full scoreable call.
 
-**Workflow:** Single sonnet subagent, web access, one-shot report. Output to `data/Reports/{Crypto|Equities}/{TICKER}/{date}-quick-{slug}.md`. Compact format: Summary, Key Facts, Levels, Sources.
+**Workflow:** Single `asset-analyst` in quick mode, web access, one-shot report. Output to `data/Reports/{Crypto|Equities}/{TICKER}/{date}-quick-{slug}.md`. Compact format: Summary, Key Facts, Levels, Sources. No Prediction Record, so no verifier — a quick check makes no scoreable call.
 
-### Tier 2 — Standard Deep Dive (orchestrator + 3 parallel workers + synthesis)
+### Tier 2 — Standard Deep Dive (3 parallel workers → synthesizer → verifier)
 
 **Default for any asset the owner wants a real call on.**
 
 **Architecture:**
-1. **Fundamental worker** (sonnet) — narrative thesis, business model, catalysts, qualitative risks. NO price/numeric claims unless cited.
-2. **Quant worker** (sonnet) — financials, valuation multiples, comp table, levels. **CITE-OR-FAIL: every number requires a source URL or gets `[UNVERIFIED]` tag.**
-3. **Bear worker** (sonnet) — explicit adversarial case. Job is to argue this is a bad bet. Highest-conviction reasons it fails. Not "balanced" — actually bearish.
-4. **Synthesizer** (sonnet, runs after all 3 complete) — produces the final report combining all three. Surfaces disagreements. Flags any `[UNVERIFIED]` numbers at the top.
+1. **`fundamental-worker`** — narrative thesis, business model, catalysts, qualitative risks. NO price/numeric claims unless cited.
+2. **`quant-worker`** — financials, valuation multiples, comp table, levels. **CITE-OR-FAIL: every number requires a source URL or gets `[UNVERIFIED]` tag.**
+3. **`bear-worker`** — explicit adversarial case. Job is to argue this is a bad bet. Highest-conviction reasons it fails. Not "balanced" — actually bearish.
+
+   Workers 1-3 are spawned in **one message** so they run in parallel.
+4. **`synthesizer`** (runs after all 3 complete) — produces the final report combining all three. Surfaces disagreements. Flags any `[UNVERIFIED]` numbers at the top. The bear's "what would change my mind" conditions become the report's kill criteria — that is how the adversary keeps working after the report ships.
+5. **`report-verifier`** — audits the synthesis. Blockers go back to the synthesizer.
 
 **Output:** `data/Reports/{Crypto|Equities}/{TICKER}/{date}-deep-dive.md` — final synthesis only. Worker drafts are not saved (synthesis carries the conclusions).
 
-**Cost:** ~4-5x a Tier 1 run. Justified by the asset deserving real conviction work.
+**Cost:** ~5-6x a Tier 1 run. Justified by the asset deserving real conviction work.
 
-### Tier 3 — High-Stakes (same architecture, opus workers)
+### Tier 3 — High-Stakes (opus on judgment and attack)
 
 **When:** the owner flags a call as high-stakes (unusual conviction, IPO coverage, a major at an inflection point).
 
-**Architecture:** identical to Tier 2 but the **synthesizer runs on opus** — Tier 3 spends the larger model on the judgment step (resolving bull/bear, setting the levels), not on gathering. Workers stay sonnet; upgrade a worker to opus only if its subproblem is itself open-ended. The owner must explicitly request Tier 3 OR the trigger conditions above must be met.
+**Architecture:** identical to Tier 2, but the **`synthesizer` and `bear-worker` are spawned with `model: opus`** — Tier 3 spends the larger model on judgment (resolving bull/bear, setting the levels) and on attack, not on gathering. The fundamental and quant workers stay sonnet; upgrade one to opus only if its subproblem is itself open-ended. The verifier stays sonnet — it is checklist work. The owner must explicitly request Tier 3 OR the trigger conditions above must be met.
 
 ### Triage rule
 
-When the owner says "research X", I default to **Tier 2** unless:
+When the owner says "research X", default to **Tier 2** unless:
 - The ask is clearly a quick check ("what is X", "what's the ticker for X")
+- The asset already has a report on file and the ask is "where are we" — that is a Refresh, not a Tier 2
 - The owner specifies otherwise
 
 If unsure between Tier 1 and Tier 2, ask once. Don't ask between Tier 2 and Tier 3 — apply the trigger rules.
+
+## Orchestration Rules
+
+These bind the main session, and they are what make the roster above safe to run in parallel.
+
+### The return contract — main never reads a report body
+
+Agents hand back a fixed block, never the report. The `asset-analyst` and `synthesizer` blocks
+are specified in their briefs: ticker, version, verdict, confidence, stop status, kill status,
+swing target, regime, what changed, path, flags. The main session reasons over those blocks,
+writes the cross-asset read, and summarizes to the owner.
+
+This is the discipline that makes delegation pay. A main session that reads each full report
+back has spent the agent and kept the context cost.
+
+### Concurrency
+
+- **Bootstrap the venv ONCE before spawning anything.** Parallel agents creating a venv race
+  each other: `cd engine && [ -d .venv ] || (python3 -m venv .venv && .venv/bin/pip install -e ".[dev]")`, then `.venv/bin/python test_smoke.py`. If the smoke test fails, stop and report — never spawn agents against a broken data layer.
+- **Agents never run `git`. The main session commits, once, after all agents return.**
+  Concurrent commits contend on `index.lock` and corrupt the staging area.
+- **Single writer for the shared files.** `data/Research/{TICKER}.md` pointer lines,
+  `data/Watchlist.md` rows, and `data/Reports/_meta/calibration.md` are written by the main
+  session only — never by an agent, never by two agents at once. Agents surface the implied
+  change in their `Flags` line; the main session asks the owner and applies it.
+- **All independent spawns go in ONE message** so they run in parallel: the three Tier 2
+  workers together, and one `asset-analyst` per ticker in a sweep together.
+- **Every agent brief carries the current date and the active calibration biases.** Agents do
+  not inherit the session's context.
+
+### Whoever cites a number pulls it themselves
+
+There is no data-fetching agent, deliberately. A stage that receives numbers and re-types them
+into a report is exactly the transcription error that produced this system's one correction
+report. Each agent runs the deterministic tools it needs. The duplicated tool calls are cheap;
+the transcription is not.
+
+### When NOT to delegate
+
+Delegation has a fixed overhead — a cold agent re-derives context the main session already
+holds. Stay inline for:
+
+- A single lookup: current price, one level, "where are we", reading an existing report.
+- The level-watch sweep — it is one script, and it is **manual-only, owner-triggered**.
+- `/postmortem` — low volume, and it is the single writer to `calibration.md`.
+- The cross-asset read at the end of a sweep — only the main session holds every return block.
+- Anything the owner asked as a conversational question rather than a research task.
+
+## Owner-only files — structurally enforced
+
+`data/Research/**` and `data/Watchlist.md` are the owner's. That rule was prose across four
+files, which does not survive a roster of agents, so it is now enforced by a PreToolUse hook —
+`.claude/hooks/guard-owner-files.py`, wired in `.claude/settings.json`. It binds the main
+session and every agent equally:
+
+| Action | Result |
+|---|---|
+| `Write` over an existing `data/Research/*.md` | **Blocked** — append-only |
+| `Write` a `data/Research/*.md` that does not exist yet | Allowed — creating a new thesis file is documented |
+| `Edit` a `data/Research/*.md` where `old_string` survives verbatim inside `new_string` | Allowed — this is an append |
+| `Edit` a `data/Research/*.md` that rewrites or deletes existing content | **Blocked** — the audit trail is the point |
+| `Write` over `data/Watchlist.md` | **Blocked** — never rewritten wholesale |
+| `Edit` a single `data/Watchlist.md` row | Allowed — the documented, owner-confirmed path |
+| Shell redirection, `tee`, or `sed -i` targeting either | **Blocked** |
+
+To genuinely revise past thesis text, the owner edits by hand. The hook is not a suggestion an
+agent may work around; a block is a correct answer, not an obstacle.
 
 ## Mandatory Report Sections
 
@@ -147,7 +270,12 @@ A short check appended by the synthesizer. Three questions only:
 - **Internal consistency:** does the Bear case actually contradict the bull, or are they talking past each other?
 - **Premortem (on the CALL, not the thesis):** assume the primary call is wrong at review_date — state the single most likely reason in one line, and say whether that reason is regime / correlation / timing rather than thesis. The bear worker attacks the thesis before synthesis; this line red-teams the committed decision after it (the ZEC class of miss — long beta into risk_off — is exactly what it exists to catch).
 
-Don't expand this into a full critic agent. The point is forcing the synthesizer to look back, not generating more output.
+Keep it to those three questions — the author's job here is to look back, not to generate more output.
+
+**The author's premortem is self-graded, so it is not the only one.** The `report-verifier`
+writes its own premortem independently, before reading the author's closely. Where the two name
+different primary failure modes, **both go in the report** — a disagreement about how a call
+dies is signal, and collapsing it to one line throws that signal away.
 
 ## Calibration Loop (Auto-Improvement)
 
@@ -185,25 +313,27 @@ Process:
 
 ### Feedback
 
-Every Tier 2/3 orchestrator brief includes the **latest calibration entry as context**, with the instruction: "the system has shown the following biases in past calls — actively counter-weight."
+**Every** agent brief — analyst, worker, synthesizer, verifier — includes the **latest calibration entry as context**, with the instruction: "the system has shown the following biases in past calls — actively counter-weight." Agents start cold and inherit none of the session's context, so an un-injected bias is an absent bias. Each agent names its counter-weighting check in one line so the injection is auditable rather than decorative.
 
 This is the auto-improvement. Past misses get cited in future research.
 
 ## Crypto-Specific Additions
 
-For any crypto Tier 2/3 report, the Quant worker MUST include:
+For any crypto report, whoever writes it — the `quant-worker` on a Tier 2/3 deep dive, the `asset-analyst` on a refresh or scan — MUST include:
 
 - **Token unlock table** — upcoming unlocks by date and % of supply, as a **literal markdown table under a `## Token Unlocks` heading** — never prose. This is a hard gate: `prediction_record.py` fails any `Reports/Crypto/` report without it (a fair-launch asset with no unlocks states that in one row). The single biggest crypto catalyst class must be impossible to bury in narrative.
 - **Sentiment source:** Kaito (higher-signal than generic CT scraping)
 - **On-chain sources:** Glassnode and/or Token Terminal — these are the citable primary sources
 
-Crypto reports do not have SEC filings, so the Fundamental worker must lean harder on team, prior delivery history, and tokenomics design.
+Crypto reports do not have SEC filings, so the `fundamental-worker` must lean harder on team, prior delivery history, and tokenomics design.
 
 ## Technicals — Programmatic Data Layer
 
-The Quant worker does not eyeball charts, trust scraped price numbers, or hand-write
-indicator math. It runs one deterministic computation and *interprets* the output, so the
-numbers are identical and auditable on every run.
+No agent eyeballs charts, trusts scraped price numbers, or hand-writes indicator math. Each
+runs one deterministic computation and *interprets* the output, so the numbers are identical
+and auditable on every run. This binds every role that cites a number — the `quant-worker`,
+the `asset-analyst`, the `bear-worker` building its tape case, and the `report-verifier`
+re-deriving a figure to check it.
 
 > **Code lives in `engine/`.** The compute layer (scripts, MCP server, cron) sits in this
 > repo at `engine/` — see `engine/README.md` for setup. It reads and writes the sibling
@@ -367,7 +497,7 @@ stale; the "Last run" line at the top tells you.
 
 ### On-chain / protocol data — `defillama.py`
 
-For any crypto with a live protocol (DEXs, perps, RWA), the Quant worker pulls TVL,
+For any crypto with a live protocol (DEXs, perps, RWA), the report's author pulls TVL,
 fees, revenue, and DEX volume from DefiLlama's free API instead of flagging
 `[UNVERIFIED]`:
 
@@ -381,7 +511,7 @@ never guess the number.
 
 ### Positioning / crowding — `funding.py`
 
-For any crypto with a listed perp, the Quant worker pulls funding rate + open interest
+For any crypto with a listed perp, the report's author pulls funding rate + open interest
 (Binance USD-M public API, Bybit fallback — free, no keys):
 
 ```bash
@@ -481,11 +611,13 @@ Defaults (the owner can override):
 - Never rewrite past entries — audit trail is the point
 
 ### Request agent research
-1. Triage tier (default Tier 2)
-2. For Tier 2/3: spawn orchestrator with calibration context, three workers run in parallel, synthesizer runs after
-3. Report saved to `data/Reports/{Crypto|Equities}/{TICKER}/`
-4. After validation: auto-append the dated one-line pointer to data/Research/{TICKER}.md Updates Log and commit the report (owner policy 2026-07-25), then summarize findings to the owner
-5. Thesis content in Research/ stays owner-only — never write analysis there; anything beyond the pointer line is ask-first
+1. Triage tier (default Tier 2; an asset with a report already on file is a Refresh)
+2. Bootstrap the venv ONCE and run `test_smoke.py` before spawning anything
+3. Spawn per the tier — Refresh: one `asset-analyst`. Tier 2/3: `fundamental-worker` + `quant-worker` + `bear-worker` in one message, then `synthesizer`. Every brief carries the date and the active calibration biases
+4. Spawn `report-verifier` on the finished report; loop blockers back to the author until PASS
+5. Report saved to `data/Reports/{Crypto|Equities}/{TICKER}/` and validated (`prediction_record.py` prints OK)
+6. **Main session** then commits — agents never run git — auto-appending the dated one-line pointer to data/Research/{TICKER}.md Updates Log (owner policy 2026-07-25), and summarizes the return blocks to the owner
+7. Thesis content in Research/ stays owner-only — never write analysis there; anything beyond the pointer line is ask-first, and the hook enforces it
 
 ### Read patterns
 When the owner references an asset by ticker, default to:

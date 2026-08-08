@@ -14,9 +14,16 @@ watchlist levels, and reports.
 
 ## How it works
 
-- **Tiered research** — Tier 1 quick check (one agent) → Tier 2 deep dive
-  (3 parallel workers + adversarial bear worker + synthesizer; the default) →
-  Tier 3 high-stakes (opus synthesizer on the judgment step).
+- **Tiered research, always delegated** — every workflow runs in subagents from
+  the roster in `.claude/agents/`; the main session orchestrates and never
+  writes reports itself. Refresh & Scan (analyst + verifier; the standing path
+  that carries the live call) → Tier 1 quick check (one agent) → Tier 2 deep
+  dive (3 parallel workers + synthesizer + verifier; the default) → Tier 3
+  high-stakes (opus on judgment and attack).
+- **The author is never the auditor** — a read-only `report-verifier` audits
+  every scoreable report before it commits: it re-derives the numbers rather
+  than re-reading them, checks close-basis vs live-price tests, de-overlaps any
+  base rate, and writes its own premortem. Blockers loop back to the author.
 - **Deterministic compute** (`engine/`) — technicals, market-regime gate,
   funding/OI, on-chain data, level watch. Agents interpret the output, never
   recompute it. Crypto OHLCV comes from the exchange (OKX → Bybit → Binance),
@@ -36,6 +43,8 @@ watchlist levels, and reports.
 |---|---|
 | `docs/SPEC.md` | The system contract — tiers, Prediction Record, risk rules, calibration |
 | `.claude/commands/` | `/research`, `/refresh`, `/postmortem`, `/research-watchlist`, `/report-view` |
+| `.claude/agents/` | The agent roster — one brief per role (analyst, verifier, the Tier 2/3 workers, synthesizer) |
+| `.claude/hooks/` | `guard-owner-files.py` — makes the append-only rules structural, not advisory |
 | `engine/` | Deterministic compute layer (CLI + `investments` MCP server) — `engine/README.md` |
 | `data/Watchlist.md` | The calls table (levels + status) |
 | `data/Research/{TICKER}.md` | The owner's thesis, append-only |

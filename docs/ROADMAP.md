@@ -36,6 +36,29 @@ only when the repo earns it. Real data never enters git history.
 - [x] Watchlist seeded — BTC first call live (more tickers as the owner names them) — 2026-07-19
 - [x] First Tier 2 run (BTC deep dive v1, HOLD) — provenance + schema validation + sweep all exercised — 2026-07-19
 
+## Phase 3.5 — Agent architecture (owner-approved 2026-08-08)
+
+The tiered subagent design existed on paper but ran only on Tier 2 deep dives — one report
+per asset, ever. Refreshes (the highest-volume path, and the one carrying every live call
+after v1) ran inline, unverified, and serially.
+
+- [x] Agent roster in `.claude/agents/` — `asset-analyst`, `report-verifier`,
+      `fundamental-worker`, `quant-worker`, `bear-worker`, `synthesizer`. Briefs moved out
+      of the command files (which had drifted apart) into one file per role, each carrying
+      its own tool grants and model — 2026-08-08
+- [x] `report-verifier` stage on every scoreable report — the author is never the auditor.
+      Re-derives numbers rather than re-reading them; writes an independent premortem — 2026-08-08
+- [x] Refresh & Scan promoted to a first-class tier (analyst + verifier); a refresh that
+      changes the call also spawns the bear worker — 2026-08-08
+- [x] Orchestration rules: return-block contract (main never reads a report body), venv
+      bootstrapped once, agents never run git, single writer for the shared files — 2026-08-08
+- [x] `.claude/hooks/guard-owner-files.py` — append-only enforcement for `data/Research/`
+      and overwrite-proofing for `data/Watchlist.md`, structural rather than prose, binding
+      main and agents alike (18-case test suite) — 2026-08-08
+- [ ] Score the architecture: after ~5 verified reports, check whether verifier blockers
+      are catching real defects or generating noise. Retire or tighten on the evidence,
+      the same way the premium veto was retired
+
 ## Phase 4 — Portfolio polish
 
 - [ ] Showcase README: architecture diagram, calibration-loop story (short

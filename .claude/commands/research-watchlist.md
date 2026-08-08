@@ -1,7 +1,9 @@
 # /research-watchlist — Scheduled watchlist sweep (stocks & crypto)
 
-Refresh every watchlist asset in one run: pull fresh technicals, write a compact
-scoreable deep-dive per ticker, and finish with one consolidated **ranked** summary.
+Refresh every watchlist asset in one run: one `asset-analyst` per ticker in parallel, one
+`report-verifier` per report, then **you** write the consolidated ranked digest. The
+cross-asset read is the one part that stays in the main session — only it holds every return
+block at once.
 
 Designed to run on a schedule (local cron, headless), and also on demand.
 
@@ -12,94 +14,74 @@ Designed to run on a schedule (local cron, headless), and also on demand.
 
 ## The contract lives in docs/SPEC.md
 
-`docs/SPEC.md` is the source of truth: long-only/no-leverage
-rules, the Prediction Record format, the technicals layer, and the calibration loop.
-**Read it and CLAUDE.md first, and never override the owner's documented preferences.**
+`docs/SPEC.md` is the source of truth: the tiers, the risk rules, the Prediction Record format,
+the technicals layer, the orchestration rules, and the calibration loop. The **agent briefs in
+`.claude/agents/`** are the source of truth for how each role works — this command does not
+restate them. **Read the spec and CLAUDE.md first; never override the owner's documented
+preferences.**
 
-There is **no `min_conviction=56`** in this vault — conviction is the spec's 1–5 /
-high-med-low confidence scale. Use that; do not invent a numeric floor.
+There is **no `min_conviction=56`** in this system — conviction is the spec's high/medium/low
+confidence scale. Use that; do not invent a numeric floor.
 
 ## Steps
 
 1. **Parse `$ARGUMENTS`** — scope is `active`, `all`, or empty (treat empty as `all`).
 
 2. **Load shared context once** (not per ticker):
-   - `data/Watchlist.md` — the Watchlist table.
-   - `data/Reports/_meta/calibration.md` — inject the latest "Active biases" into every
-     worker prompt as counter-weighting context.
-   - Select tickers: from the Watchlist, take rows whose Status is not `Resolved` or
-     `Invalidated`. If scope is `active`, keep only `Status: Active`. Note each
-     ticker's `Type` (Stock / Crypto) — it decides the `--crypto` flag and the
-     `data/Reports/Equities|Crypto/` path.
+   - `data/Watchlist.md` — the calls table.
+   - `data/Reports/_meta/calibration.md` — the latest **Active biases**, verbatim, to inject
+     into every agent brief.
+   - Select tickers: rows whose Status is not `Resolved` or `Invalidated`. If scope is
+     `active`, keep only `Status: Active`. Note each ticker's `Type` — it decides the
+     `--crypto` flag and the `Crypto|Equities` path — and its most recent report (the baseline
+     filename and version).
 
-3. **Bootstrap the venv ONCE, before spawning anything** (avoids a concurrent-create
-   race across parallel agents):
+3. **Bootstrap the venv ONCE, before spawning anything** (parallel agents creating a venv race
+   each other):
    ```bash
-   cd ~/Documents/projects/market-research/engine
-   [ -d .venv ] || (python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[dev]")
-   . .venv/bin/activate && python test_smoke.py
+   cd engine && [ -d .venv ] || (python3 -m venv .venv && .venv/bin/pip install -e ".[dev]")
+   .venv/bin/python test_smoke.py
    ```
-   If `test_smoke.py` fails, stop and report — do not spawn agents against a broken
-   data layer.
+   If `test_smoke.py` fails, stop and report — do not spawn agents against a broken data layer.
 
-4. **Spawn one sonnet agent per selected ticker, in parallel** (all Agent calls in a
-   single message). Each agent gets the per-ticker brief below. Do NOT run full Tier 2
-   (orchestrator + 3 workers) per ticker — this sweep is one agent per ticker by design.
+4. **Spawn one `asset-analyst` per selected ticker, all in a single message** so they run in
+   parallel. Each brief carries: ticker, Type, asset-class path, the baseline report path and
+   version, the Watchlist stop/entry/target, today's date, the active calibration biases
+   verbatim, and the trigger (`scheduled sweep`). Output filename:
+   `{YYYY-MM-DD}-watchlist-scan.md`. Tell each one to keep the body compact — this is a sweep,
+   not a Tier 2 deep dive.
 
-5. **Consolidate** — after all agents return, write the ranked digest (step "Digest").
-   Then surface the ranked summary to the owner. Make **no** changes to Watchlist levels,
-   Research/ theses, or any config — those need the owner's explicit confirmation.
+   Do **not** run the full Tier 2 worker trio per ticker; the sweep is one analyst per ticker
+   by design.
 
-## Per-ticker agent brief (fill {TICKER}, {TYPE}, {ASSET_CLASS}, {CALIBRATION})
+5. **Spawn one `report-verifier` per returned report**, again in a single parallel message.
+   `NEEDS FIX` → send the blockers back to that ticker's `asset-analyst` via `SendMessage` so
+   it keeps its context, then re-verify. Loop until every report PASSes. A ticker still failing
+   after two rounds gets flagged in the digest rather than blocking the sweep.
 
-> You are researching **{TICKER}** ({TYPE}) for the owner's watchlist sweep. Follow
-> `docs/SPEC.md` exactly — long-primary (a losing bull case
-> defaults to REDUCE/TRIM/WAIT/SKIP); you MAY add a secondary opt-in **short flag** only
-> when the spec's exhaustion+premium setup is present, with its own hard stop and cover
-> target. Decisive and time-bound, stop mandatory on every long or short.
->
-> 1. **Technicals (cited by construction):** the venv is already set up. Run:
->    ```bash
->    cd ~/Documents/projects/market-research/engine && . .venv/bin/activate
->    python technicals.py {TICKER}{CRYPTO_FLAG}
->    ```
->    The snapshot self-validates: if it errors or returns empty, say so plainly and fall
->    back to cited web numbers — do NOT invent levels. Read the add-ladder and the
->    dealing range (location context only — zone does not gate adds; premium veto
->    retired 2026-07-26); do not recompute. If price is extended above the nearest
->    rung, say there is no low-risk add and name the rung.
-> 2. **Context:** read `data/Research/{TICKER}.md` (the owner's thesis — never edit it) and the most
->    recent file in `data/Reports/{ASSET_CLASS}/{TICKER}/`. Counter-weight these documented
->    biases: {CALIBRATION}
-> 3. **Web check:** confirm price/catalyst freshness. Every numeric web claim needs a
->    source URL or an `[UNVERIFIED]` tag (cite-or-fail). Technicals output is pre-cited.
-> 4. **Write** `data/Reports/{ASSET_CLASS}/{TICKER}/{YYYY-MM-DD}-watchlist-scan.md` with the
->    spec's mandatory sections: the one-line Provenance header (v{N} / Supersedes / Trigger), then `## Prediction Record` at the TOP (Verdict, time-bound
->    Targets table, Entries & risk table with mandatory Stop, Confidence, Review date,
->    Kill criteria) and a short `## Self-Critique Pass` at the end. Keep the body compact
->    — this is a sweep, not a Tier 2 deep dive.
-> 5. **Validate:** `python prediction_record.py <your report.md>` (from engine/, venv active) — must print OK before you finish.
-> 6. **Return to the orchestrator** (do not print the whole report): one line each for —
->    ticker, Verdict, Direction, Confidence, swing target + %, stop, and a one-phrase
->    "what changed since last report / since the owner's thesis."
+6. **Write the digest yourself** (step "Digest" below), from the return blocks — do not read
+   the report bodies back.
 
-`{CRYPTO_FLAG}` is ` --crypto` for Type=Crypto, empty for Stock. `{ASSET_CLASS}` is
-`Crypto` or `Equities`.
+7. **Commit — main session only, agents never run git.** One commit after every agent has
+   returned: the per-ticker reports, the digest, and a dated one-line pointer appended to each
+   `data/Research/{TICKER}.md` Updates Log (pure-append Edit; pointers only, never analysis).
+
+8. **Surface the ranked table inline, then stop.** Make **no** changes to Watchlist levels,
+   Research/ theses, or any config — those need the owner's explicit confirmation. Name the
+   decisions he owns.
 
 ## Digest
 
 Write `data/Reports/_meta/Watchlist-Scan/{YYYY-MM-DD}.md`:
 
-- **One-line header:** date, scope (active/all), tickers covered.
-- **Ranked table** — sort best opportunity → worst. Columns: Rank | Ticker | Direction |
+- **One-line header:** date, scope (active/all), tickers covered, regime.
+- **Ranked table** — best opportunity → worst. Columns: Rank | Ticker | Direction |
   Confidence | Verdict (one line) | Swing target (+%) | Stop | What changed.
-- **Correlation flag** — when 3+ Active calls share one beta cluster (all crypto =
-  BTC beta; multiple AI-infra equities), say so in one line: each call in a cluster
-  is weaker than it looks alone, and a risk_off regime hits the whole cluster at once.
-- **Flags** — any ticker where the technicals layer errored/fell back, any
-  `[UNVERIFIED]` numbers, any thesis that may be invalidated (kill criteria near).
-- Ranking logic: Active calls with a triggered/near kill-criterion rank first (action
-  needed), then highest-confidence long setups at or near a confirmed rung reclaim,
-  then watching/no-op.
-
-Then give the owner the ranked table inline. End there — no auto-edits to thesis, levels, or config.
+- **Correlation flag** — when 3+ Active calls share one beta cluster (all crypto = BTC beta;
+  multiple AI-infra equities), say so in one line: each call in a cluster is weaker than it
+  looks alone, and a `risk_off` regime hits the whole cluster at once. This is the read no
+  single-ticker agent can produce, which is why it lives here.
+- **Flags** — any ticker where the technicals layer errored or fell back, any `[UNVERIFIED]`
+  numbers, any thesis whose kill criteria are near, any report that did not reach verifier PASS.
+- Ranking logic: Active calls with a triggered/near kill criterion rank first (action needed),
+  then highest-confidence long setups at or near a confirmed rung reclaim, then watching/no-op.
