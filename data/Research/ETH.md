@@ -17,3 +17,7 @@ Added to watchlist. HOLD, ranked behind BTC for fresh capital — see Reports/Cr
 ### 2026-07-25
 
 /refresh v2: HOLD unchanged — flat at $1,859, premium + risk_off; all triggers clear (stop +23% away, ETH/BTC 0.0290 rising). See Reports/Crypto/ETH/2026-07-25-status-refresh.md.
+
+### 2026-08-08
+
+/refresh v3: HOLD unchanged — $1,913, risk_off; stop +27% (6.7 ATR) clear, weekly ETH/BTC 0.029654 now 1.15% from the flip line. Verifier-passed after a repair pass. See Reports/Crypto/ETH/2026-08-08-status-refresh.md.
