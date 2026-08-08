@@ -29,6 +29,7 @@ from mcp.server.fastmcp import FastMCP
 import check_levels as levels_mod
 import defillama as defillama_mod
 import funding as funding_mod
+import marketcap as marketcap_mod
 import regime as regime_mod
 import technicals
 from exchange_ohlcv import base_ticker
@@ -101,6 +102,15 @@ def watchlist_levels() -> str:
                 return f"Sweep error: {e}"
     out = buf.getvalue().strip()
     return out or "Sweep ran; no output (no rows or all clean in quiet mode)."
+
+
+@mcp.tool()
+def crypto_total() -> str:
+    """Crypto total market cap (TOTAL) + BTC dominance and distance from the ATH.
+    The macro backdrop the BTC-only regime gate can miss: BTC holding its 200-MA
+    while the tail bleeds shows up as rising dominance against a flat TOTAL.
+    Spot reading only — no free history, so no MAs/trend. Context, not a gate."""
+    return marketcap_mod.to_markdown(marketcap_mod.collect())
 
 
 @mcp.tool()

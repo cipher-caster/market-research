@@ -29,6 +29,7 @@ py-modules = [
     "regime",
     "funding",
     "defillama",
+    "marketcap",
     "check_levels",
     "fetch_ohlcv",
     "exchange_ohlcv",

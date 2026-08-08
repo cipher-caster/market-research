@@ -24,11 +24,12 @@ fast with a clear message.
 
 ```
 config.py            data bridge — resolves ../data, exposes WATCHLIST/REPORTS paths
-investments_mcp.py   MCP server (FastMCP, stdio) — the primary interface, 5 tools
+investments_mcp.py   MCP server (FastMCP, stdio) — the primary interface, 6 tools
 technicals.py        MA/RSI/MACD/ATR, S/R, SMC dealing range
 regime.py            risk-on/neutral/off gate on the benchmark
 funding.py           perp funding + open interest (Binance/Bybit)
 defillama.py         on-chain TVL/fees/revenue
+marketcap.py         crypto TOTAL market cap + BTC dominance (spot only, no free history)
 check_levels.py      watchlist level-watch sweep (the cron job)
 fetch_ohlcv.py       routed OHLCV — fetch_routed(): crypto -> exchange, stocks -> Yahoo
 exchange_ohlcv.py    crypto OHLCV from OKX -> Bybit -> Binance (matches TradingView)
@@ -54,7 +55,7 @@ claude mcp add --scope user investments \
 ```
 
 Tools: `technicals_snapshot`, `market_regime`, `funding_oi`, `watchlist_levels`,
-`defillama_protocol`. Registration is machine-local (not in git) — redo it on a
+`crypto_total`, `defillama_protocol`. Registration is machine-local (not in git) — redo it on a
 new machine.
 
 > **If a tool errors with a stray import (e.g. `No module named 'numpy.rec'`) but
@@ -77,6 +78,7 @@ new machine.
 .venv/bin/python check_levels.py               # level-watch sweep (+ 50-MA trend-kill line)
 .venv/bin/python exchange_ohlcv.py ZEC --last 5  # dated daily OHLC bars (close-basis tests)
 .venv/bin/python defillama.py hyperliquid      # on-chain metrics
+.venv/bin/python marketcap.py                  # crypto TOTAL mcap + BTC dominance
 ```
 
 **Cron.** `cron_sweep.sh` runs the level sweep twice daily and writes

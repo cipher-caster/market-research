@@ -35,6 +35,7 @@ import re
 
 import pandas as pd
 
+import marketcap
 from config import WATCHLIST
 from fetch_ohlcv import fetch_routed
 from regime import GATE, compute_regime
@@ -229,6 +230,10 @@ def main() -> None:
         r = compute_regime(bdf)
         lines.append(f"- **Regime ({bench} via {bsrc}): {r['regime'].upper()}** — "
                      f"{'; '.join(r['reasons'])}. Gate: {GATE[r['regime']]}")
+    if has_crypto:
+        # Context under the crypto regime line: the gate reads BTC alone, which
+        # can hold while the tail bleeds. Gates nothing (see marketcap.py).
+        lines.append(marketcap.summary_line(marketcap.collect()))
     lines.append("")
 
     if triggers:
