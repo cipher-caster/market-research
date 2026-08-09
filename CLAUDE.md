@@ -32,7 +32,8 @@ available — same math, in-conversation.
 
 - `README.md` — short front door (tour + quick start)
 - `docs/SPEC.md` — the system spec (the contract; read it, follow it)
-- `.claude/commands/` — `/research`, `/refresh`, `/postmortem`, `/research-watchlist`, `/report-view` (render a report .md as a private artifact or PDF on request; .md stays canonical). Thin dispatchers: they wire inputs and spawn agents, they do not restate the briefs.
+- `.claude/commands/` — `/research`, `/refresh`, `/postmortem`, `/research-watchlist`, `/report-view` (render a report .md as a private artifact or PDF on request; .md stays canonical), `/book-view` (render the whole book as a dashboard artifact at one standing URL). Thin dispatchers: they wire inputs and spawn agents, they do not restate the briefs.
+- `.claude/assets/` — resources commands render from, not commands themselves: `book-view.template.html` (the dashboard shell; refill the `REGENERATE` blocks, leave the design alone).
 - `.claude/agents/` — the agent roster, one brief per role: `asset-analyst`, `report-verifier`, `fundamental-worker`, `quant-worker`, `bear-worker`, `synthesizer`. **Source of truth for how each role works** — edit the brief, not the command.
 - `.claude/hooks/guard-owner-files.py` — PreToolUse guard making `data/Research/` append-only and `data/Watchlist.md` overwrite-proof, for main and agents alike. A block is a correct answer; never work around it.
 - `engine/` — Python compute layer; setup in `engine/README.md`

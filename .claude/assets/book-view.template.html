@@ -1,0 +1,863 @@
+<!--
+  Template for /book-view. Seeded from the 2026-08-08 render, which is a working example,
+  not a placeholder: if a cycle forgets to refill a block, the page renders internally
+  consistent but visibly dated rather than mixing cycles.
+
+  Refill every block marked REGENERATE, and the dateline/title below. Leave the CSS and the
+  render functions alone unless you are deliberately changing the design — the artifact
+  redeploys to one standing URL and should stay recognisable across cycles.
+-->
+<title>Research Book — 2026-08-08</title>
+<style>
+:root {
+  --ground: #F1F3F6;
+  --surface: #FFFFFF;
+  --surface-2: #F7F8FA;
+  --ink: #161A21;
+  --ink-2: #3C4553;
+  --muted: #5A6472;
+  --rule: #DBE0E8;
+  --rule-soft: #E9ECF1;
+  --accent: #2B4A87;
+  --accent-soft: #E4EAF5;
+  --pos: #1C6B4C;
+  --pos-soft: #E1F0E8;
+  --caution: #8A6410;
+  --caution-soft: #F6EEDA;
+  --risk: #A63A2E;
+  --risk-soft: #F7E6E3;
+  --shadow: 0 1px 2px rgba(22, 26, 33, .05), 0 8px 24px -16px rgba(22, 26, 33, .28);
+
+  --display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --data: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #11141A;
+    --surface: #181C24;
+    --surface-2: #1E232C;
+    --ink: #E4E9F1;
+    --ink-2: #C2CAD6;
+    --muted: #8892A1;
+    --rule: #272D37;
+    --rule-soft: #21262F;
+    --accent: #8AA9E8;
+    --accent-soft: #1D2634;
+    --pos: #4CB78C;
+    --pos-soft: #15271F;
+    --caution: #D2A03F;
+    --caution-soft: #29220F;
+    --risk: #E27263;
+    --risk-soft: #2B1A17;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .8);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground: #11141A;
+  --surface: #181C24;
+  --surface-2: #1E232C;
+  --ink: #E4E9F1;
+  --ink-2: #C2CAD6;
+  --muted: #8892A1;
+  --rule: #272D37;
+  --rule-soft: #21262F;
+  --accent: #8AA9E8;
+  --accent-soft: #1D2634;
+  --pos: #4CB78C;
+  --pos-soft: #15271F;
+  --caution: #D2A03F;
+  --caution-soft: #29220F;
+  --risk: #E27263;
+  --risk-soft: #2B1A17;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .8);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 40px 24px 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ---------- masthead ---------- */
+
+.masthead {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 22px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.masthead h1 {
+  font-family: var(--display);
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  font-weight: 600;
+  letter-spacing: -.015em;
+  line-height: 1.05;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.masthead .standfirst {
+  color: var(--muted);
+  max-width: 62ch;
+  margin: 0;
+}
+
+.masthead .dateline {
+  font-family: var(--data);
+  font-size: .72rem;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 4px;
+}
+
+/* ---------- gate strip ---------- */
+
+.gate {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 20px;
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--caution);
+  border-radius: 3px;
+  padding: 18px 22px;
+  box-shadow: var(--shadow);
+}
+
+.gate .state {
+  font-family: var(--data);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  color: var(--caution);
+  padding-right: 20px;
+  border-right: 1px solid var(--rule);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.gate .detail { display: flex; flex-direction: column; gap: 8px; }
+.gate .detail p { margin: 0; }
+.gate .conds {
+  font-family: var(--data);
+  font-size: .82rem;
+  color: var(--ink-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+.gate .conds span::before { content: "AND "; color: var(--muted); }
+.gate .conds span:first-child::before { content: ""; }
+
+.gate .src { font-size: .8rem; color: var(--muted); max-width: 76ch; }
+
+/* ---------- summary band ---------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.tile {
+  background: var(--surface);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tile .k {
+  font-family: var(--data);
+  font-size: .66rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tile .v {
+  font-family: var(--display);
+  font-size: 1.65rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile .sub { font-size: .78rem; color: var(--muted); }
+
+/* ---------- sections ---------- */
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.section-head h2 {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -.01em;
+}
+
+.section-head .rule { flex: 1; height: 1px; background: var(--rule); }
+
+.section-head .note {
+  font-family: var(--data);
+  font-size: .7rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- asset card ---------- */
+
+.book { display: flex; flex-direction: column; gap: 18px; }
+
+.asset {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  box-shadow: var(--shadow);
+  padding: 22px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.asset-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  justify-content: space-between;
+}
+
+.sym {
+  font-family: var(--display);
+  font-size: 1.7rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.sym .since {
+  font-family: var(--data);
+  font-size: .68rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.pills { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.pill {
+  font-family: var(--data);
+  font-size: .68rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 2px;
+  border: 1px solid var(--rule);
+  color: var(--ink-2);
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+
+.pill.verdict-hold { color: var(--accent); background: var(--accent-soft); border-color: transparent; font-weight: 600; }
+.pill.verdict-avoid { color: var(--risk); background: var(--risk-soft); border-color: transparent; font-weight: 600; }
+.pill.flagged { color: var(--caution); background: var(--caution-soft); border-color: transparent; }
+
+.thesis { margin: 0; color: var(--ink-2); max-width: 78ch; }
+
+/* ---------- level ladder ---------- */
+
+.ladder { display: flex; flex-direction: column; gap: 0; padding-top: 26px; }
+
+/* a second stacked flag needs its own headroom or it collides with the thesis above */
+.ladder.stacked { padding-top: 52px; }
+
+.track {
+  position: relative;
+  height: 30px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--risk-soft) 0%, var(--surface-2) 42%, var(--surface-2) 58%, var(--pos-soft) 100%);
+  border: 1px solid var(--rule);
+}
+
+.zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(-45deg, var(--accent-soft) 0 5px, transparent 5px 10px);
+  border-left: 1px solid var(--accent);
+  border-right: 1px solid var(--accent);
+}
+
+.tick {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 1px;
+  background: var(--muted);
+}
+
+.tick.dashed {
+  background: repeating-linear-gradient(180deg, var(--caution) 0 3px, transparent 3px 6px);
+}
+
+.needle {
+  position: absolute;
+  top: -9px;
+  bottom: -9px;
+  width: 2px;
+  background: var(--ink);
+}
+
+.needle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--ink);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.flag {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  transform: translateX(-50%);
+  font-family: var(--data);
+  font-size: .74rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.flag.caution { color: var(--caution); font-weight: 400; font-size: .68rem; }
+
+.ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-family: var(--data);
+  font-size: .74rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ends .end { display: flex; flex-direction: column; gap: 1px; }
+.ends .end.right { text-align: right; }
+
+.ends .lbl {
+  font-size: .64rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.ends .stop-v { color: var(--risk); }
+.ends .tgt-v { color: var(--pos); }
+
+/* ---------- numbers ---------- */
+
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 1px;
+  background: var(--rule-soft);
+  border: 1px solid var(--rule-soft);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0;
+}
+
+.num {
+  background: var(--surface);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.num dt {
+  font-family: var(--data);
+  font-size: .63rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.num dd {
+  margin: 0;
+  font-family: var(--data);
+  font-size: .95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.num dd .delta { font-size: .74rem; color: var(--muted); }
+.num dd .delta.pos { color: var(--pos); }
+.num dd .delta.neg { color: var(--risk); }
+
+/* ---------- notes ---------- */
+
+.notes { display: flex; flex-direction: column; gap: 9px; }
+
+.note-row {
+  display: grid;
+  grid-template-columns: 116px 1fr;
+  gap: 14px;
+  align-items: baseline;
+  font-size: .88rem;
+  padding-top: 9px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.note-row:first-child { border-top: 0; padding-top: 0; }
+
+.note-row .rk {
+  font-family: var(--data);
+  font-size: .64rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.note-row .rv { color: var(--ink-2); }
+.note-row .rv b { color: var(--ink); font-weight: 600; }
+.note-row .rv code {
+  font-family: var(--data);
+  font-size: .84em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.status-clear { color: var(--pos); font-weight: 600; }
+.status-watch { color: var(--caution); font-weight: 600; }
+
+/* ---------- ledger table ---------- */
+
+.scroller { overflow-x: auto; border: 1px solid var(--rule); border-radius: 3px; background: var(--surface); box-shadow: var(--shadow); }
+
+table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+
+thead th {
+  text-align: left;
+  font-family: var(--data);
+  font-size: .64rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--rule-soft);
+  vertical-align: baseline;
+}
+
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr.newgroup td { border-top: 1px solid var(--rule); }
+
+td.mono, th.mono { font-family: var(--data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.tick-sym { font-family: var(--display); font-size: 1rem; font-weight: 600; }
+td.latest { font-weight: 600; }
+
+.kind {
+  font-family: var(--data);
+  font-size: .66rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.kind.deep { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.kind.corr { color: var(--caution); background: var(--caution-soft); border-color: transparent; }
+
+/* ---------- open items ---------- */
+
+.items { display: flex; flex-direction: column; gap: 12px; }
+
+.item {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--caution);
+  border-radius: 3px;
+  padding: 15px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* state of the system, not something needing attention */
+.item.neutral { border-left-color: var(--accent); }
+
+.item h3 {
+  margin: 0;
+  font-size: .95rem;
+  font-weight: 600;
+}
+
+.item p { margin: 0; font-size: .88rem; color: var(--ink-2); max-width: 82ch; }
+.item code { font-family: var(--data); font-size: .84em; font-variant-numeric: tabular-nums; }
+
+.item .tag {
+  font-family: var(--data);
+  font-size: .63rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- colophon ---------- */
+
+.colophon {
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+  font-size: .8rem;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.colophon code { font-family: var(--data); font-size: .92em; color: var(--ink-2); }
+
+@media (max-width: 620px) {
+  .gate { grid-template-columns: 1fr; gap: 12px; }
+  .gate .state { border-right: 0; border-bottom: 1px solid var(--rule); padding: 0 0 10px; }
+  .note-row { grid-template-columns: 1fr; gap: 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+  <!-- REGENERATE: dateline, headline and standfirst. The headline states the one true thing
+       about the book this cycle; if the gate flips or a verdict changes, it changes. -->
+  <header class="masthead">
+    <p class="dateline">Research book &middot; as of 2026-08-08</p>
+    <h1>Five active calls, one gate</h1>
+    <p class="standfirst">Every position in the book is Hold or Avoid, every one carries medium confidence, and all five sit behind the same risk_off regime gate. This is the visual read of what the reports in <code>data/Reports/</code> currently say &mdash; the <code>.md</code> files remain canonical.</p>
+  </header>
+
+  <!-- REGENERATE: the regime gate, from the newest report's Regime row. Both deterministic
+       conditions, the OR-semantics note, and which print the figures come from. Swap the
+       border-left and .state colour to var(--pos) if the gate is no longer risk_off. -->
+  <section class="gate">
+    <div class="state">RISK_OFF</div>
+    <div class="detail">
+      <p><b>Add rungs suspended across the whole book.</b> Stops and exits still execute; new longs are starter-size only, and only on the owner&rsquo;s explicit call. The gate is an OR-condition &mdash; either leg alone holds it red.</p>
+      <div class="conds">
+        <span>BTC 65,135 below its 200-MA 70,296 &nbsp;(&minus;7.34%)</span>
+        <span>drawdown &minus;20.9% from the 90-bar high &nbsp;(threshold 20%)</span>
+      </div>
+      <p class="src">Re-derived in BTC v5 on 2026-08-08, later in the day than the 10:21 sweep the ladders below use &mdash; which is why BTC reads 65,135 here and 64,902.9 on its card.</p>
+    </div>
+  </section>
+
+  <!-- REGENERATE: summary tiles. Every tile must trace to the Watchlist or a report line —
+       this is the easiest place on the page to assert something the reports contradict. -->
+  <section class="tiles">
+    <div class="tile"><span class="k">Active calls</span><span class="v">5</span><span class="sub">all crypto, no equities</span></div>
+    <div class="tile"><span class="k">Verdicts</span><span class="v">4 / 1</span><span class="sub">Hold / Avoid &mdash; no Buy</span></div>
+    <div class="tile"><span class="k">Confidence</span><span class="v">medium</span><span class="sub">on all five, unchanged</span></div>
+    <div class="tile"><span class="k">Stops / kills fired</span><span class="v">0</span><span class="sub">none tested; HYPE&rsquo;s reclaim fired and reversed</span></div>
+    <div class="tile"><span class="k">Next review</span><span class="v">08-19</span><span class="sub">four together; SOL 09-17</span></div>
+    <div class="tile"><span class="k">Scored calls</span><span class="v">0</span><span class="sub">calibration scoreboard empty</span></div>
+  </section>
+
+  <div class="section-head">
+    <h2>The calls</h2>
+    <span class="rule"></span>
+    <span class="note">levels from Watchlist &middot; price from the 10:21 sweep</span>
+  </div>
+
+  <div class="book" id="book"></div>
+
+  <div class="section-head">
+    <h2>Report ledger</h2>
+    <span class="rule"></span>
+    <span class="note">20 reports &middot; 2026-07-19 to 2026-08-08</span>
+  </div>
+
+  <div class="scroller">
+    <table id="ledger">
+      <thead>
+        <tr>
+          <th>Asset</th>
+          <th class="mono">Date</th>
+          <th class="mono">Ver</th>
+          <th>Kind</th>
+          <th>What it was for</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section-head">
+    <h2>Open items</h2>
+    <span class="rule"></span>
+    <span class="note">recorded, not escalated</span>
+  </div>
+
+  <!-- REGENERATE: open items — one per Watchlist/report level divergence found in step 2,
+       plus process gaps and calibration state. class="item neutral" for state that needs no
+       action; the default amber stripe means someone has a decision to make. -->
+  <section class="items">
+    <article class="item">
+      <span class="tag">Level divergence &middot; SOL</span>
+      <h3>The Watchlist and the SOL report disagree on the stop</h3>
+      <p>SOL v2 flagged a real defect: the <code>70&ndash;72</code> entry zone floor sat <em>below</em> the <code>70.14</code> stop, so a fill at the zone floor was invalidated on arrival. It proposed two fixes and applied neither. The Watchlist has since been synced to option A &mdash; stop <code>65.21</code>, target <code>83.98</code> &mdash; while the report text still reads <code>70.14</code> / <code>87.79</code> throughout. The ladder above uses the Watchlist, per its source-of-truth role. The report has not been re-issued against the new stop.</p>
+    </article>
+    <article class="item">
+      <span class="tag">Level divergence &middot; HYPE</span>
+      <h3>The Watchlist still carries a rung the latest report withdrew</h3>
+      <p>HYPE v3 withdrew <code>54.331</code> as an entry rung &mdash; nothing in the current structure sits near it, and no OHLC print in the last 30 sessions touches it. Its proposed replacement is <code>51.153</code> (the converged 10/20/50-bar low), marked owner-decision and not applied. The Watchlist row still shows <code>54.331</code> as Entry, so the ladder above draws it as a withdrawn marker rather than a live level.</p>
+    </article>
+    <article class="item">
+      <span class="tag">Process gap</span>
+      <h3>Two audit corrections were never themselves audited</h3>
+      <p>BTC v5 and ZEC v7 were written to correct blockers the verifier found in v4 and v6. Being corrections, they are the newest word on both tickers &mdash; and neither got an independent verification pass of its own. The rule is that the author is never the auditor; these two are the standing exception.</p>
+    </article>
+    <article class="item neutral">
+      <span class="tag">Calibration</span>
+      <h3>Nothing has been scored yet, so no bias is active</h3>
+      <p>The scoreboard is empty: no call has reached its review date and resolved. Both calibration entries to date are process events &mdash; the 2026-07-26 rule backtest and the 2026-08-08 first audit pass &mdash; not resolutions. Active biases injected into agent briefs: none. The first real scoring event lands on or after 2026-08-19.</p>
+    </article>
+  </section>
+
+  <footer class="colophon">
+    <span>Canonical sources: <code>data/Watchlist.md</code> (levels, status), <code>data/Reports/Crypto/{TICKER}/</code> (reports), <code>data/Reports/_meta/calibration.md</code> (scoreboard), <code>data/Reports/_meta/Level-Watch.md</code> (last manual sweep, 2026-08-08 10:21).</span>
+    <span>Prices are the last manual level-watch sweep. Percentages are recomputed here from Watchlist levels against that price, so they will differ slightly from figures inside reports written against a later intraday print. This page is a view; it is never the source of truth and edits made here reach nothing.</span>
+  </footer>
+
+</div>
+
+<script>
+/* REGENERATE — one entry per active Watchlist row, in Watchlist order.
+   Levels come from the Watchlist, price from the Level-Watch sweep, everything else from the
+   newest report for that ticker. `dp` is decimal places. `zone: [lo, hi]` draws the shaded
+   entry band; use `withdrawn: <price>` instead when the newest report has withdrawn the rung
+   but the Watchlist still carries it. `flagged` puts an amber pill on the card and must be
+   paired with an open item below. Percentages are computed, never copied out of a report. */
+const assets = [
+  {
+    sym: "BTC", since: "called 2026-07-19", verdict: "Hold", conf: "medium",
+    ver: "v5 · 2026-08-08 correction",
+    price: 64902.9, stop: 57748, target: 78101, zone: [63100, 65500],
+    dp: 0, review: "2026-08-19",
+    thesis: "Macro-shock drawdown into a de-risked MVRV. Buy only on a confirmed reclaim — the position is a wait on the 65,508 line, not a view on the level.",
+    rows: [
+      ["Next action", "<b>None.</b> Rung 1 is a daily close above <code>$65,508</code> (20-bar resistance), status <b>unarmed</b> — the 3-bar arming window closed unconfirmed on the 07-28 close. Even armed, risk_off caps it at starter size."],
+      ["Kill criteria", "<span class='status-clear'>Clear on both legs.</span> A weekly close under <code>$57,748</code> <em>with</em> ETF flows still net negative would flip the call to Avoid, targeting 44–50k. Price is 11% away and has never tested it."],
+      ["What moved", "ETF flows reversed hard — four straight positive sessions, ~<code>$763.7M</code> (Aug 3–6), restoring the EOY target's contingency that v3 had downgraded. Honest counterweight: the funds are still ~$4.84B net negative on the year."],
+      ["Catalyst", "FOMC 2026-07-28/29 resolved hawkish and is scored. Next is FOMC 2026-09-15/16 with the dot plot — inside the horizon, past this review date."]
+    ]
+  },
+  {
+    sym: "ETH", since: "called 2026-07-19", verdict: "Hold", conf: "medium",
+    ver: "v3 · 2026-08-08 refresh",
+    price: 1913.31, stop: 1507, target: 2154, zone: [1729, 1830],
+    dp: 2, review: "2026-08-19",
+    thesis: "MVRV deep-value set against a broken fee model. Price sits above the discount zone and below the reclaim trigger — the least resolved call in the book, three refreshes running.",
+    rows: [
+      ["Next action", "<b>None.</b> Rung 1 is a daily close above <code>$1,981.26</code> (20-bar high) with the MACD histogram rising — ~3% above price, and suspended under risk_off regardless. The alternative path is a confirmed reclaim close <em>inside</em> 1,729–1,830, which price grazed on 08-01 (low 1,821.91) but never closed in."],
+      ["Kill criteria", "<span class='status-clear'>Both legs clear.</span> Written as weekly-close tests and scored against the week ending 2026-08-02."],
+      ["What moved", "Round-tripped a post-FOMC dip to 1,821.91 and recovered fully. Momentum rolled back over since v2 (histogram +3.58 → −3.95) but has risen five straight bars off its −10.05 low — still negative, no longer falling."],
+      ["Note", "Stop cushion is the widest in the book at −21%, which is a function of where the 50-bar range floor sits, not of conviction."]
+    ]
+  },
+  {
+    sym: "SOL", since: "called 2026-07-19", verdict: "Hold", conf: "medium",
+    ver: "v2 · 2026-08-08 refresh", flagged: "levels diverge",
+    price: 73.93, stop: 65.21, target: 83.98, zone: [70, 72],
+    dp: 2, review: "2026-09-17",
+    thesis: "Cheap on fees with the decay stabilizing — the de-overlapped 6-week read troughed at $423K/day and has recovered to $533K/day. Regime and death posture block the add; location does not.",
+    rows: [
+      ["Next action", "<b>No add is live under risk_off, full stop.</b> For the record once the gate clears: a daily close above ~<code>$83.9</code>, where the 50-bar high (83.98) and the 200-MA (83.84) have converged into one zone, with the MACD histogram rising."],
+      ["Kill criteria", "<span class='status-clear'>Price leg clear.</span> The fee-decay leg now looks wrong rather than merely untriggered — the mirage the kill criterion was written to catch is not showing up in the data."],
+      ["Levels", "<span class='status-watch'>Diverged.</span> Ladder drawn from the Watchlist (stop <code>65.21</code>, target <code>83.98</code>, synced after the report); v2's own text still cites <code>70.14</code> / <code>87.79</code>. See open items."],
+      ["Catalyst", "Alpenglow ships Sep/Oct. Review pushed to 09-17 to land after the 2026-09-16 FOMC release rather than before it."]
+    ]
+  },
+  {
+    sym: "ZEC", since: "called 2026-07-20", verdict: "Hold", conf: "medium",
+    ver: "v7 · 2026-08-08 correction",
+    price: 506.13, stop: 435, target: 588.88, zone: [470, 501],
+    dp: 2, review: "2026-08-19",
+    thesis: "The book's one idiosyncratic uptrend — golden cross, and the shielded-adoption re-rating is now confirmed rather than hoped for. 1,661,951 ZEC, 45.4% of the sealed Orchard pool, has migrated.",
+    rows: [
+      ["Next action", "<b>None.</b> The structural pullback ladder sits below price — near <code>494.35</code> (20-MA), mid <code>479.11</code> (50-MA), deep <code>452.47</code> (10-bar swing low) — and all three rungs are suspended by the gate. Breakout add: a daily close above <code>588.88</code> on above-average volume. Trim on a daily close below the 50-MA."],
+      ["Kill criteria", "<span class='status-clear'>All three clear</span>, re-derived independently in the correction. The Ironwood leg that was open at v5 closed in the call's favour."],
+      ["Correction", "v6 quoted +155%/+183% fat-tail figures beside its n=39 base rate; those were within-episode double-counts of a single already-counted episode — the exact overlapping-window artifact v6 claimed to have discarded. Removed. The correction <em>tightens</em> the caution inside \"medium\", it does not loosen it."],
+      ["Targets", "Two tiers: near-term <code>588.88</code> (the Watchlist target, so the sweep fires on the first tier) and swing <code>644.64</code> beyond the ladder's right edge."]
+    ]
+  },
+  {
+    sym: "HYPE", since: "called 2026-07-28", verdict: "Avoid", conf: "medium",
+    ver: "v3 · 2026-08-08 correction", flagged: "rung withdrawn",
+    price: 54.066, stop: 47.60, target: 64.06, withdrawn: 54.331,
+    dp: 3, review: "2026-08-19",
+    thesis: "A real fee-buyback flywheel that is still decelerating. The supply leg is gone — the August unlock came in at ~4% of the ceiling, not a third ceiling print — which leaves revenue decay as the sole bear leg, against a broken short-term trend with the 50-MA 12% overhead.",
+    rows: [
+      ["Next action", "<b>No valid entry rung exists.</b> v3 withdrew <code>54.331</code>: the 10-, 20- and 50-bar lows have all converged at <code>51.153</code>, the 20-MA is 56.25 and the 50-MA 61.89 — nothing in current structure sits near 54.331, and it cannot be re-justified as prior support turned resistance."],
+      ["Kill criteria", "One did not trigger and is unchanged. One is <span class='status-watch'>genuinely tracking toward trigger</span> on the absolute-level test, though its headline percentage was overstated in v2 and is corrected here."],
+      ["Correction", "v2 claimed the 54.331 rung was \"one daily close away, $0.22\" — wrong. Re-derivation of OKX closes shows it fired 08-05/06 and reversed 08-07. v2 applied fired-then-reversed scoring to its own bear trigger but not to its bull trigger."],
+      ["Catalyst", "Revenue stabilization test into September, the 2026-09-06 unlock, and the CFTC/Kalshi onshoring path."]
+    ]
+  }
+];
+
+const fmt = (n, dp) => n.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+const pct = n => (n >= 0 ? "+" : "") + n.toFixed(2) + "%";
+const posOf = (v, a) => ((v - a.stop) / (a.target - a.stop)) * 100;
+const clamp = n => Math.max(3, Math.min(97, n));
+
+document.getElementById("book").innerHTML = assets.map(a => {
+  const px = a.price;
+  const dTarget = (a.target / px - 1) * 100;
+  const dStop = (a.stop / px - 1) * 100;
+  const rr = (a.target - px) / (px - a.stop);
+  const pPrice = posOf(px, a);
+
+  let zoneEl = "", zoneNum = "";
+  if (a.zone) {
+    const z0 = posOf(a.zone[0], a), z1 = posOf(a.zone[1], a);
+    const inZone = px >= a.zone[0] && px <= a.zone[1];
+    zoneEl = `<div class="zone" style="left:${z0}%;width:${z1 - z0}%"></div>`;
+    const dz = inZone ? "in zone" :
+      `${pct((a.zone[1] / px - 1) * 100)} to top`;
+    zoneNum = `<div class="num"><dt>Entry zone</dt><dd>${fmt(a.zone[0], a.dp)}–${fmt(a.zone[1], a.dp)}<br><span class="delta ${inZone ? "pos" : ""}">${dz}</span></dd></div>`;
+  } else if (a.withdrawn) {
+    const w = posOf(a.withdrawn, a);
+    zoneEl = `<div class="tick dashed" style="left:${w}%"></div>
+      <span class="flag caution" style="left:${clamp(w)}%;bottom:calc(100% + 32px)">${fmt(a.withdrawn, a.dp)} withdrawn</span>`;
+    zoneNum = `<div class="num"><dt>Entry rung</dt><dd>none<br><span class="delta">54.331 withdrawn</span></dd></div>`;
+  }
+
+  return `<article class="asset">
+    <div class="asset-head">
+      <div class="sym">${a.sym}<span class="since">${a.since}</span></div>
+      <div class="pills">
+        <span class="pill verdict-${a.verdict.toLowerCase()}">${a.verdict}</span>
+        <span class="pill">conf ${a.conf}</span>
+        <span class="pill">${a.ver}</span>
+        ${a.flagged ? `<span class="pill flagged">${a.flagged}</span>` : ""}
+      </div>
+    </div>
+    <p class="thesis">${a.thesis}</p>
+    <div class="ladder${a.withdrawn ? " stacked" : ""}">
+      <div class="track">
+        ${zoneEl}
+        <div class="needle" style="left:${pPrice}%"></div>
+        <span class="flag" style="left:${clamp(pPrice)}%">${fmt(px, a.dp)}</span>
+      </div>
+      <div class="ends">
+        <span class="end"><span class="lbl">Stop</span><span class="stop-v">${fmt(a.stop, a.dp)} &nbsp;${pct(dStop)}</span></span>
+        <span class="end right"><span class="lbl">Target</span><span class="tgt-v">${fmt(a.target, a.dp)} &nbsp;${pct(dTarget)}</span></span>
+      </div>
+    </div>
+    <dl class="numbers">
+      <div class="num"><dt>Last price</dt><dd>${fmt(px, a.dp)}<br><span class="delta">2026-08-08 sweep</span></dd></div>
+      ${zoneNum}
+      <div class="num"><dt>To target</dt><dd><span class="delta pos">${pct(dTarget)}</span></dd></div>
+      <div class="num"><dt>To stop</dt><dd><span class="delta neg">${pct(dStop)}</span></dd></div>
+      <div class="num"><dt>Reward : risk</dt><dd>${rr.toFixed(2)}<br><span class="delta">from last price</span></dd></div>
+      <div class="num"><dt>Review</dt><dd>${a.review}</dd></div>
+    </dl>
+    <div class="notes">
+      ${a.rows.map(([k, v]) => `<div class="note-row"><span class="rk">${k}</span><span class="rv">${v}</span></div>`).join("")}
+    </div>
+  </article>`;
+}).join("");
+
+/* REGENERATE — every report on disk, grouped by ticker, oldest first within a ticker.
+   [sym, date, version, kind, why]. kind: "deep" | "ref" | "corr". Version and trigger both
+   come from line 1 of the report. Keep `latest` below in step with the newest version. */
+const ledger = [
+  ["BTC", "2026-07-19", "v1", "deep", "First report — opened the call"],
+  ["BTC", "2026-07-24", "v2", "ref", "Level-watch trigger"],
+  ["BTC", "2026-08-04", "v3", "ref", "Level-watch trigger; downgraded the ETF-flow contingency"],
+  ["BTC", "2026-08-08", "v4", "ref", "Unscheduled — the flow contingency v3 flagged reversed back"],
+  ["BTC", "2026-08-08", "v5", "corr", "Verifier audit of v4: rung wrongly described as armed"],
+  ["ETH", "2026-07-19", "v1", "deep", "First report — opened the call"],
+  ["ETH", "2026-07-25", "v2", "ref", "Owner request"],
+  ["ETH", "2026-08-08", "v3", "ref", "Scheduled re-test; ETH was the last of the book left out of the cycle"],
+  ["SOL", "2026-07-19", "v1", "deep", "First report — opened the call"],
+  ["SOL", "2026-08-08", "v2", "ref", "First refresh since the call opened; found the entry/stop overlap"],
+  ["ZEC", "2026-07-19", "v1", "deep", "First report — opened the call"],
+  ["ZEC", "2026-07-20", "v2", "ref", "Owner request"],
+  ["ZEC", "2026-07-24", "v3", "ref", "Level-watch trigger"],
+  ["ZEC", "2026-07-28", "v4", "ref", "Ironwood activation"],
+  ["ZEC", "2026-07-28", "v5", "corr", "Data correction to v4"],
+  ["ZEC", "2026-08-08", "v6", "ref", "Review date came due; first pass since Ironwood activated"],
+  ["ZEC", "2026-08-08", "v7", "corr", "Verifier audit of v6: fat-tail figures were double-counted"],
+  ["HYPE", "2026-07-28", "v1", "deep", "First report — opened the call"],
+  ["HYPE", "2026-08-08", "v2", "ref", "Review date came due; the unlock v1 was built around resolved"],
+  ["HYPE", "2026-08-08", "v3", "corr", "Verifier audit of v2: three blockers, entry rung withdrawn"]
+];
+
+const kindLabel = { deep: "deep dive", ref: "refresh", corr: "correction" };
+const kindClass = { deep: "deep", ref: "", corr: "corr" };
+const latest = { BTC: "v5", ETH: "v3", SOL: "v2", ZEC: "v7", HYPE: "v3" };
+
+document.querySelector("#ledger tbody").innerHTML = ledger.map((r, i) => {
+  const [sym, date, ver, kind, why] = r;
+  const first = i === 0 || ledger[i - 1][0] !== sym;
+  const isLatest = latest[sym] === ver;
+  return `<tr class="${first && i > 0 ? "newgroup" : ""}">
+    <td class="tick-sym">${first ? sym : ""}</td>
+    <td class="mono">${date}</td>
+    <td class="mono ${isLatest ? "latest" : ""}">${ver}${isLatest ? " ·" : ""}</td>
+    <td><span class="kind ${kindClass[kind]}">${kindLabel[kind]}</span></td>
+    <td>${why}</td>
+  </tr>`;
+}).join("");
+</script>
