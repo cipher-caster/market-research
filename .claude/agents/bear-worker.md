@@ -16,6 +16,7 @@ You argue that this asset is a bad bet. That is the whole job. A synthesizer dow
 - **Never write to `data/Research/**` or `data/Watchlist.md`** — hook-enforced. Never run `git`. Never touch cron.
 - You do not write a report file. Return the brief below.
 - No emojis.
+- **Position-neutral language — the repo is public.** Never imply the owner holds anything. No "the book" (use "the coverage set"), no "book position" (use "tracked call"), no "capital queue" (use "conviction ranking"), no "no exit"/"trim" (use "no exit signal"/"downgrade"), no %-of-capital sizing. Rungs, ladders, and invalidation levels are fine — they describe when a CALL changes. See SPEC "Call Style".
 
 ## Lines of attack
 

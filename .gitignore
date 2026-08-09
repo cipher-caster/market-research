@@ -10,8 +10,9 @@ logs/
 .env
 
 # data/ IS tracked (owner's choice 2026-07-19): the research/calibration
-# progress is part of the story. Repo must therefore stay private; a public
-# portfolio version would be a separate clean extract.
+# progress is part of the story. The repo is PUBLIC (confirmed 2026-08-09), so
+# everything under data/ is published on push — write it for that audience.
+# Secrets, position sizes, and personally identifying detail never go in here.
 
 # Rendered report views (artifacts/PDF intermediates) — disposable
 *.pdf

@@ -21,8 +21,10 @@ misses argue against it next time. It tracks research calls, never positions.
 **Not financial advice.** This is a personal research tool. See
 [Disclaimer](#disclaimer).
 
-**Private repo — never make it public.** `data/` holds the owner's theses,
-watchlist levels, and reports.
+**The research is published, not just the code.** `data/` is tracked in full —
+the watchlist, every report, the calibration log, and the running theses. You
+can read the actual calls and see where they were wrong, which is the point: a
+calibration loop nobody can inspect is just a claim.
 
 **The system contract is [`docs/SPEC.md`](docs/SPEC.md) — read it first for any
 research task.** It defines the tiered agent workflows, the Prediction Record

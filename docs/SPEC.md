@@ -27,7 +27,7 @@ market-research/
         calibration.md   ← Rolling calibration log, updated on events + monthly
 ```
 
-**This repo is private and must stay private** — `data/` holds the owner's theses, watchlist levels, and reports.
+**This repo is public** — `data/` holds the owner's theses, watchlist levels, and reports, and all of it is published (owner's deliberate choice, confirmed 2026-08-09). Anything written under `data/` is public the moment it is pushed; never commit secrets, position sizes, or personally identifying detail.
 
 Reports are split by asset class: **`data/Reports/Crypto/{TICKER}/`** and **`data/Reports/Equities/{TICKER}/`**. `_meta/` stays at the `data/Reports/` root (system-level, not per-asset). `data/Research/` and `data/Watchlist.md` are NOT split — they stay flat.
 
@@ -568,6 +568,18 @@ numbers rather than inventing levels. Health check: `python test_smoke.py`.
 ## Call Style
 
 **Research calls, not positions.** The system issues BUY / HOLD / AVOID calls — long-primary, swing-horizon — and scores them later. It never tracks holdings, executions, sizing, or portfolio exposure; "risk" here means the call's invalidation level, not money at risk.
+
+**Write it that way too — the repo is public.** The rule above is about what the system tracks; this one is about the words on the page. Report language must not imply the owner holds anything, because a reader can infer a position from vocabulary even when no position is stated. Audited and corrected 2026-08-09 after exactly this drift.
+
+| Don't write | Write instead | Why |
+|---|---|---|
+| "the book", "book position", "book-wide" | "the coverage set", "tracked call", "coverage-wide" | "book" means a portfolio |
+| "starter size (1%)", any % of capital | "starter size" | sizing is the owner's, and private |
+| "capital queue" | "conviction ranking" | ranking calls is fine; queueing capital is not |
+| "no exit", "trim", "take profit" | "no exit signal", "downgrade" | you can only exit what you hold |
+| "I/we hold", "our position", "underwater" | — never | direct disclosure |
+
+Add rungs, ladders, and invalidation levels stay — they describe **when a call would change**, which is the research product, not a holding. The test: could a reader conclude the owner owns this asset, or learn how the owner sizes? If yes, rewrite.
 
 **Downside calls are allowed — as an explicit, secondary, opt-in flag, never the default.** When a high-conviction downside setup exists, the report surfaces it instead of staying silent. The primary call stays long-side (usually HOLD / WAIT / AVOID); the downside flag is offered alongside. A losing bull case still defaults to HOLD/AVOID — a downside call is only raised when the setup below is genuinely there, not every time the bear case wins.
 

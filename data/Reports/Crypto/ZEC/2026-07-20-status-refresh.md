@@ -19,7 +19,7 @@ v2 | Supersedes: 2026-07-19-deep-dive.md | Trigger: owner request — continue c
 | Field | Value |
 |---|---|
 | Direction | Hold (primary) |
-| Regime | risk_off (BTC 64,999.90 < 200-MA 72,970 — class-wide add suspension, unchanged from v1). ZEC still the one idiosyncratic bull trend in the book: golden cross, +40.9% vs 200-MA. Rungs armed but SUSPENDED until the gate flips to neutral/risk_on, or the owner overrides at starter size (1%) per the README risk_off rule |
+| Regime | risk_off (BTC 64,999.90 < 200-MA 72,970 — class-wide add suspension, unchanged from v1). ZEC still the one idiosyncratic bull trend in the coverage set: golden cross, +40.9% vs 200-MA. Rungs armed but SUSPENDED until the gate flips to neutral/risk_on, or the owner overrides at starter size per the README risk_off rule |
 | Add levels | Ladder (near→deep): 500.59 (20-MA) / 490.47 (10-bar swing low) / 470.03 (50-MA) — reclaim confirmation required, suspended by regime regardless of touch. Rungs ticked up ~1.5% vs v1 as the MAs rose. Breakout add: daily close >588.88 (20-bar resistance) on above-average volume |
 | Stop | $435 — unchanged. The v1 structural stop (below the 470.03 50-MA rung, inside the June NU6.2 breakout shelf 420-430) still sits below the fresh 2·ATR computed stop ($457.25) and below all three ladder rungs. No reason to move it |
 | Event window | CONFIRMED: Ironwood (NU7) hard fork activates 2026-07-28 at block 3,428,143, ~8am EST — new Ironwood shielded pool (patched Orchard), quantum recoverability, Tachyon scaling. Collides with FOMC 2026-07-28/29. Both land inside 8 days |

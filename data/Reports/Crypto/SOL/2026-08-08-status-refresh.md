@@ -1,4 +1,4 @@
-v2 | Supersedes: 2026-07-19-deep-dive.md | Trigger: scheduled re-test — SOL was the last book position never refreshed (BTC v4, ZEC v6, HYPE v2, ETH v3 all ran 2026-08-08); review_date 2026-08-19 approaching and the 2026-07-28/29 FOMC catalyst is unassessed
+v2 | Supersedes: 2026-07-19-deep-dive.md | Trigger: scheduled re-test — SOL was the last tracked call never refreshed (BTC v4, ZEC v6, HYPE v2, ETH v3 all ran 2026-08-08); review_date 2026-08-19 approaching and the 2026-07-28/29 FOMC catalyst is unassessed
 
 ## Prediction Record
 

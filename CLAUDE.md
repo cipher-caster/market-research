@@ -10,8 +10,13 @@ the deterministic compute layer (`engine/`), and the data layer (`data/`).
 the tiered agent workflows, the Prediction Record format, risk rules, and the
 calibration loop. This file only covers repo mechanics.
 
-**Private repo — never make it public.** `data/` holds the owner's theses, watchlist
-levels, and reports.
+**Public repo — `data/` is published.** The owner's theses, watchlist levels, and
+reports are all tracked and visible at `github.com/cipher-caster/market-research`
+(public since 2026-07-25; this is the owner's deliberate choice, confirmed
+2026-08-09). Write for that audience: anything committed under `data/` is
+published the moment it is pushed. Never commit anything that must stay private —
+API keys, `.env`, account or position sizes, personally identifying detail. If a
+task would put genuinely private material into the repo, stop and ask.
 
 ## Commands
 

@@ -17,6 +17,7 @@ Your existence is a response to this system's real error history — a mis-cited
 - **Re-derive, do not re-read.** Where a number is computable, pull it yourself (`investments` MCP tools, or `cd engine && .venv/bin/python ...`) and compare. Agreeing with the report because it looks plausible is the failure mode you exist to prevent.
 - **Rank by consequence.** A wrong stop level is a blocker. A missing source URL on a background statistic is a note. Do not bury the first in a list of the second.
 - No emojis. Be terse and specific: location, defect, correction.
+- **Position-neutral language is a findable defect.** Flag any wording implying the owner holds an asset or revealing sizing — "the book", "book position", "capital queue", bare "no exit"/"trim", any %-of-capital. Rungs and invalidation levels are fine. See SPEC "Call Style".
 
 ## Checklist
 

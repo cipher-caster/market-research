@@ -2,7 +2,7 @@ v5 | Supersedes: 2026-07-28-status-refresh.md | Trigger: data correction — two
 
 ## Prediction Record
 
-**Verdict:** Hold — unchanged from v4; this version exists to correct two cited numbers, not to change the call. The trend-kill line is still live TONIGHT: price $464.28 sits 1.61% below the 50-MA ($471.90), and the kill reads on the 00:00 UTC daily close. The corrected reference bar is the 2026-07-27 close of **$476.71** (v4 said $475.50), which held the line by +1.04% against the 50-MA as of that bar ($471.80) — so the kill is untriggered, exactly as v4 concluded. The stop ($435) is not breached on any basis; today's true intraday low is **$463.00** (v4 said $464.14), leaving -6.3% of cushion. Ironwood has still NOT activated at time of writing: chain height 3,428,107 at 13:18 UTC vs activation block 3,428,143, roughly 50 minutes out. Action NOW: unchanged — no add (risk_off suspends the ladder; the near rung $463.00 needs reclaim confirmation), no exit (nothing triggered). The decision remains tonight's close versus $471.90.
+**Verdict:** Hold — unchanged from v4; this version exists to correct two cited numbers, not to change the call. The trend-kill line is still live TONIGHT: price $464.28 sits 1.61% below the 50-MA ($471.90), and the kill reads on the 00:00 UTC daily close. The corrected reference bar is the 2026-07-27 close of **$476.71** (v4 said $475.50), which held the line by +1.04% against the 50-MA as of that bar ($471.80) — so the kill is untriggered, exactly as v4 concluded. The stop ($435) is not breached on any basis; today's true intraday low is **$463.00** (v4 said $464.14), leaving -6.3% of cushion. Ironwood has still NOT activated at time of writing: chain height 3,428,107 at 13:18 UTC vs activation block 3,428,143, roughly 50 minutes out. Action NOW: unchanged — no add (risk_off suspends the ladder; the near rung $463.00 needs reclaim confirmation), no exit signal (nothing triggered). The decision remains tonight's close versus $471.90.
 
 **Targets**
 
@@ -55,7 +55,7 @@ Fair-launch PoW asset — no unlock/vesting schedule (unchanged).
 
 **Catalyst:** Ironwood still pending at 13:18 UTC (36 blocks / ~50 minutes out), so the fork remains mid-flight and the shielded-pool kill criterion stays open.
 
-**Related, outside this report:** the same engine work surfaced that SOL's 50-MA kill line is also in play tonight (2026-07-27 close 74.22 vs its 50-MA 74.19 — held by three cents). That belongs to the SOL call, not this one, but it is the second live trigger in the book tonight and the post-FOMC pass must test it.
+**Related, outside this report:** the same engine work surfaced that SOL's 50-MA kill line is also in play tonight (2026-07-27 close 74.22 vs its 50-MA 74.19 — held by three cents). That belongs to the SOL call, not this one, but it is the second live trigger in the coverage set tonight and the post-FOMC pass must test it.
 
 **Net:** call unchanged (Hold). The correction tightens the audit trail without moving a level, a target, or the verdict.
 

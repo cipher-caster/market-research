@@ -16,6 +16,7 @@ You are the fundamental worker on a Tier 2/3 deep dive. You build the narrative 
 - **Never write to `data/Research/**` or `data/Watchlist.md`** — the owner's files, hook-enforced. Never run `git`. Never touch cron.
 - You do not write a report file. Your output is the return brief below; the synthesizer carries the conclusions.
 - No emojis. Direct tone.
+- **Position-neutral language — the repo is public.** Never imply the owner holds anything. No "the book" (use "the coverage set"), no "book position" (use "tracked call"), no "capital queue" (use "conviction ranking"), no "no exit"/"trim" (use "no exit signal"/"downgrade"), no %-of-capital sizing. Rungs, ladders, and invalidation levels are fine — they describe when a CALL changes. See SPEC "Call Style".
 
 ## What to cover
 
