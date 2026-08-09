@@ -1,14 +1,22 @@
 # market-research
 
-An AI-agentic market-research system for stocks and crypto. It issues decisive,
-time-bound, scoreable **BUY / HOLD / AVOID** calls with mandatory invalidation
-levels, then scores every call against reality — it tracks research calls,
-never positions.
+An AI-agentic market-research system for stocks and crypto, built on the premise
+that an opinionated call you can prove wrong is worth more than a balanced
+summary you can't.
 
-The design bet: an opinionated call that can be proven wrong is worth more than
-a balanced summary that can't. So every report commits to a verdict, a stop, a
-review date, and explicit kill criteria — and every resolved call is graded into
-a calibration log that counter-weights the next one.
+Every report opens with a machine-validated Prediction Record: a decisive
+**BUY / HOLD / AVOID** verdict, targets that each cite their basis, a mandatory
+invalidation level, a review date, and explicit kill criteria. Work is tiered
+and always delegated — a refresh runs an analyst plus a verifier; a deep dive
+runs three parallel workers (fundamental, quant, and an adversarial bear) into a
+synthesizer. The author is never the auditor: a read-only verifier re-derives
+every number rather than re-reading it before anything commits. Numbers come
+from a deterministic Python engine shared by CLI, cron, and MCP, so the same
+question gives the same answer on every path.
+
+Resolved calls are then scored — hit rate by confidence bucket, Brier score —
+and the resulting bias list is injected into future prompts, so the system's own
+misses argue against it next time. It tracks research calls, never positions.
 
 **Not financial advice.** This is a personal research tool. See
 [Disclaimer](#disclaimer).
