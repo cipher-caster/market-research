@@ -19,3 +19,5 @@ v6 Hold (all three kill criteria clear; Ironwood resolved favourably — 45.4% o
 v7 Hold (audit correction to v6; call unchanged — the +155%/+183% fat-tail prints were within-episode double-counts, honest de-overlapped tail is +72.32%/+43.38%; pointer backfilled 2026-08-13) — see Reports/Crypto/ZEC/2026-08-08-audit-correction.md.
 
 v8 Hold (stop 435 clear at 2.10 ATR; 50-MA kill line ~483.50 with the cushion compressed from 1.16 ATR to 0.25 ATR and MACD flipped bearish; Orchard migration 72.9%, no discrepancy within search coverage) — see Reports/Crypto/ZEC/2026-08-13-status-refresh.md.
+
+v9 Avoid — DOWNGRADE (correction to v8, which tested only the last completed close and missed it: the 50-MA kill criterion FIRED on 2026-08-11, close 481.69 vs 50-MA 482.0386, a 0.35 / 0.013 ATR undershoot, then reclaimed on 08-12/13; stop 435 clear at 2.06 ATR; confidence medium; Watchlist flip to Avoid/Invalidated recommended, not applied) — see Reports/Crypto/ZEC/2026-08-13-audit-correction.md.
